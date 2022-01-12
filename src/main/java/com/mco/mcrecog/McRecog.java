@@ -2,8 +2,14 @@ package com.mco.mcrecog;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
@@ -13,12 +19,17 @@ import net.minecraft.world.entity.monster.*;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -27,8 +38,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Arrays;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -221,19 +231,67 @@ public class McRecog
                 word = "pig";
             }
             case "Mining fatigue" -> {
+                // A minute of mining fatigue
                 player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 1200, 1));
                 word = "cave";
+            }
+            case "Lose something random" -> {
+                // 36 from inventory, 1 from offhand, 4 from armor
+                int chances = rand.nextInt(41);
+                if(chances < 36) {
+                    // Remove random item from inventory
+                    removeRandomItem(player);
+                }
+                else if(chances == 37) {
+                    // Clear offhand
+                    if(!player.getInventory().offhand.get(0).equals(ItemStack.EMPTY))
+                        player.getInventory().offhand.clear();
+                } else {
+                    // Remove random armor piece
+                    int slot = rand.nextInt(4);
+                    while (player.getInventory().armor.get(slot).equals(ItemStack.EMPTY))
+                        slot = rand.nextInt(4);
+
+                    player.getInventory().armor.get(slot).shrink(1);
+                }
+
+                word = "sub";
+            }
+            case "8 block hole" -> {
+                BlockPos pos = player.blockPosition();
+                for(int i = 1; i < 8; i++) {
+                    level.setBlock(pos.north().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+                    level.setBlock(pos.west().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+                    level.setBlock(pos.south().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+                    level.setBlock(pos.east().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+
+                    level.setBlock(pos.offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+
+                    level.setBlock(pos.east().north().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+                    level.setBlock(pos.east().south().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+                    level.setBlock(pos.west().north().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+                    level.setBlock(pos.west().south().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+                }
+                word = "follow";
+            }
+            case "Set time to night" -> {
+                ServerLevel l;
+                if (level instanceof ServerLevel) {
+                    l = (ServerLevel) level;
+                    l.setDayTime(20000);
+                }
+                word = "day";
             }
         }
 
         // If we have raw input and the word is in the raw input
         if(!peek.equals("") && !word.equals("") && peek.contains(word)) {
             // From the start of the string to the start of the word
-            first = String.valueOf(Arrays.copyOfRange(peek.toCharArray(), 0, peek.indexOf(word)));
+            first = String.valueOf(Arrays.copyOfRange(peek.toCharArray(), 0, peek.toLowerCase().indexOf(word)));
             // From the start of the word to the end of the word
-            String wordStr = String.valueOf(Arrays.copyOfRange(peek.toCharArray(), peek.indexOf(word), peek.indexOf(word) + word.length()));
+            String wordStr = String.valueOf(Arrays.copyOfRange(peek.toCharArray(), peek.toLowerCase().indexOf(word), peek.toLowerCase().indexOf(word) + word.length()));
             // From the end of the word to the end of the string
-            second = String.valueOf(Arrays.copyOfRange(peek.toCharArray(), word.length() + peek.indexOf(word), peek.length()));
+            second = String.valueOf(Arrays.copyOfRange(peek.toCharArray(), word.length() + peek.toLowerCase().indexOf(word), peek.length()));
 
             // Return new component with the word highlighted in yellow in the source string
             return new TextComponent("Message: ")
@@ -244,4 +302,25 @@ public class McRecog
         // If the word was not found or the input was not a command, return null
         return null;
     }
+
+    /**
+     * Removes a random amount of a random, non-empty item in the player's inventory
+     * @param player the player to remove items from
+     */
+    void removeRandomItem(Player player) {
+        if (player.getInventory().items.size() == 0)
+            return;
+
+        int slotId = rand.nextInt(player.getInventory().items.size());
+
+        while(player.getInventory().getItem(slotId).equals(ItemStack.EMPTY))
+            slotId = rand.nextInt(player.getInventory().items.size());
+
+        int slotCount = player.getInventory().getItem(slotId).getCount() + 1;
+        int c = rand.nextInt(slotCount + 1);
+
+        System.out.println("Removing " + c + " of item " + player.getInventory().getItem(slotId));
+        player.getInventory().removeItem(slotId, c);
+    }
+
 }

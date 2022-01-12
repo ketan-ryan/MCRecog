@@ -45,7 +45,7 @@ def get_response(response):
     print(response)
 
     ret = []
-    if "no shot" in response:
+    if "noshot" in response:
         ret.append("Lose 5 arrows")
     if "bear" in response:
         ret.append("Spawn 5 hostile polar bears")
@@ -57,8 +57,8 @@ def get_response(response):
         ret.append("Spawn 7 skeletons")
     if "pig" in response:
         ret.append("Drop hunger by 5")
-    if "prime" in response or "sub" in response:
-        ret.append("")
+    if "sub" in response:
+        ret.append("Lose something random")
     if "creep" in response:
         ret.append("Spawn 5 creepers")
     if "rod" in response:
@@ -71,6 +71,10 @@ def get_response(response):
         ret.append("Mining fatigue")
     if 'quit' in response:
         ret.append("Quit")
+    if 'follow' in response:
+        ret.append("8 block hole")
+    if 'day' in response:
+        ret.append("Set time to night")
 
     ret.append(res)
     return ret
