@@ -1,13 +1,13 @@
-No shot: Lose 5 arrows
-Bear: Spawn 5 hostile polar bears
-Axolotl: Give pufferfish effects, spawn lots of fish
-Rot: Spawn 7 zombies
-Bone: Spawn 7 skeletons
-Pig: Drop hunger by 2
-Sub: Lose something random from your inventory 
-Creep: Spawn 5 creepers
-Rod: Spawn 5 blazes
-End: Spawn 5 angry endermen
-Nether: Spawn 7 wither skeletons
-Follow: Create an 8 block hole under you
-Day: Set time to night
+- No shot: Lose 5 arrows
+- Bear: Spawn 5 hostile polar bears
+- Axolotl: Give pufferfish effects, spawn lots of fish
+- Rot: Spawn 7 zombies
+- Bone: Spawn 7 skeletons
+- Pig: Drop hunger by 2
+- Sub: Lose something random from your inventory 
+- Creep: Spawn 5 creepers
+- Rod: Spawn 5 blazes
+- End: Spawn 5 angry endermen
+- Nether: Spawn 7 wither skeletons
+- Follow: Create an 8 block hole under you
+- Day: Set time to night
