@@ -83,6 +83,8 @@ def get_response(response):
         ret.append("Set on fire")
     if 'iron' in response:
         ret.append("Spawn aggro iron golem")
+    if 'gold' in response:
+        ret.append("")
     if 'diamond' in response:
         ret.append("Set to half a heart")
     if 'mod' in response:
@@ -97,6 +99,9 @@ def get_response(response):
         ret.append("Launched in the air")
     if 'craft' in response:
         ret.append("Surround in stone")
+    if 'village' in response:
+        ret.append("Spawn witches")
+
     ret.append(res)
     return ret
 
