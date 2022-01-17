@@ -7,23 +7,15 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
-import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.NeutralMob;
-import net.minecraft.world.entity.animal.IronGolem;
-import net.minecraft.world.entity.animal.PolarBear;
 import net.minecraft.world.entity.animal.Rabbit;
-import net.minecraft.world.entity.animal.TropicalFish;
-import net.minecraft.world.entity.monster.*;
+import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -31,8 +23,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.living.LivingEvent;
-import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -50,6 +41,8 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+
+import static com.mco.mcrecog.MCRUtils.*;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod("mcrecog")
@@ -133,9 +126,10 @@ public class McRecog
     }
 
     @SubscribeEvent
-    public void onJumpEvent(LivingEvent.LivingJumpEvent event) {
-        if(event.getEntityLiving().hasEffect(MCREffects.GRAVITY.get()))
-            event.setResult(Event.Result.DENY);
+    public void onDropsEvent(LivingDropsEvent event) {
+        // We don't want our summoned mobs to drop items
+        if (event.getEntity().getPersistentData().getBoolean("dropless"))
+            event.setCanceled(true);
     }
 
     /**
@@ -181,14 +175,14 @@ public class McRecog
             case "Spawn 7 zombies" -> {
                 summonEntity(player, level, EntityType.ZOMBIE, false, 7, MobEffects.MOVEMENT_SPEED,
                         rand.nextInt(6),
-                        new ItemStack[]{new ItemStack(Items.LEATHER_HELMET), new ItemStack(Items.WOODEN_SWORD)});
+                        new ItemStack[]{new ItemStack(Items.IRON_HELMET), new ItemStack(Items.IRON_SWORD)});
 
                 word = "rot";
             }
             case "Spawn 7 skeletons" -> {
                 summonEntity(player, level, EntityType.SKELETON, false, 7, MobEffects.MOVEMENT_SPEED,
                         rand.nextInt(6),
-                        new ItemStack[]{new ItemStack(Items.LEATHER_HELMET), new ItemStack(Items.STONE_SWORD)});
+                        new ItemStack[]{new ItemStack(Items.IRON_HELMET), new ItemStack(Items.IRON_SWORD)});
 
                 word = "bone";
             }
@@ -205,7 +199,7 @@ public class McRecog
             case "Spawn 7 wither skeletons" -> {
                 clearBlocksAbove(player, level);
                 summonEntity(player, level, EntityType.WITHER_SKELETON, false, 7, MobEffects.MOVEMENT_SPEED, 2,
-                        new ItemStack[]{new ItemStack(Items.STONE_SWORD)});
+                        new ItemStack[]{new ItemStack(Items.DIAMOND_SWORD)});
 
                 word = "nether";
             }
@@ -328,6 +322,7 @@ public class McRecog
                     if (rabbit != null) {
                         rabbit.setRabbitType(99);
                         rabbit.setPos(player.position().add(rand.nextInt(3), 1, rand.nextInt(3)));
+                        rabbit.getPersistentData().putBoolean("dropless", true);
                         level.addFreshEntity(rabbit);
                     }
                 }
@@ -349,7 +344,10 @@ public class McRecog
                 if (creeper != null) {
                     CompoundTag tag = new CompoundTag();
                     tag.putBoolean("powered", true);
-                    creeper.addAdditionalSaveData(tag);
+                    creeper.readAdditionalSaveData(tag);
+
+                    creeper.getPersistentData().putBoolean("dropless", true);
+
                     creeper.setPos(player.position());
                     level.addFreshEntity(creeper);
                 }
@@ -409,81 +407,6 @@ public class McRecog
         return null;
     }
 
-    /**
-     * Method to summon any amount of entities with an optional target and set of potion effects
-     * @param player The player whose position to spawn the entities at
-     * @param level The instance ofLevel to which the player belongs
-     * @param e The EntityType to create
-     * @param hostile Whether the mob is a neutral mob that needs to be set hostile to the player
-     * @param count The amount of mobs to spawn
-     * @param effect The optional potion effect to spawn with
-     * @param strength The strength of the effect
-     * @param stacks The optional list of ItemStacks to be equipped with
-     */
-    void summonEntity(Player player, Level level, EntityType<? extends LivingEntity> e, boolean hostile, int count,
-                      MobEffect effect, int strength, ItemStack[] stacks) {
-        for(int i = 0; i < count; i++) {
-            LivingEntity entity = e.create(level);
-            if(entity != null) {
-                entity.setPos(player.position());
 
-                if(hostile) {
-                    if (entity instanceof Mob mob)
-                        mob.setTarget(player);
-                    if(entity instanceof NeutralMob mob)
-                        mob.setTarget(player);
-                }
-                if(effect != null)
-                    entity.addEffect(new MobEffectInstance(effect, Integer.MAX_VALUE, strength));
-
-                if(stacks != null && entity instanceof Monster monster) {
-                    for (ItemStack stack : stacks)
-                        monster.equipItemIfPossible(stack);
-                }
-
-                level.addFreshEntity(entity);
-            }
-        }
-    }
-
-    /**
-     * Clears a space above the player's head so tall mobs don't suffocate
-     * @param player the player to clear the blocks above
-     * @param level the server level instance
-     */
-    void clearBlocksAbove(Player player, Level level) {
-        BlockPos pos = player.blockPosition();
-        for(int i = 0; i < 4; i ++) {
-            level.setBlock(pos.north().offset(0, i, 0), Blocks.AIR.defaultBlockState(), 2);
-            level.setBlock(pos.west().offset(0, i, 0), Blocks.AIR.defaultBlockState(), 2);
-            level.setBlock(pos.south().offset(0, i, 0), Blocks.AIR.defaultBlockState(), 2);
-            level.setBlock(pos.east().offset(0, i, 0), Blocks.AIR.defaultBlockState(), 2);
-            level.setBlock(pos.north().east().offset(0, i, 0), Blocks.AIR.defaultBlockState(), 2);
-            level.setBlock(pos.south().east().offset(0, i, 0), Blocks.AIR.defaultBlockState(), 2);
-            level.setBlock(pos.north().west().offset(0, i, 0), Blocks.AIR.defaultBlockState(), 2);
-            level.setBlock(pos.south().west().offset(0, i, 0), Blocks.AIR.defaultBlockState(), 2);
-            level.setBlock(pos.offset(0, i, 0), Blocks.AIR.defaultBlockState(), 2);
-        }
-    }
-
-    /**
-     * Removes a random amount of a random, non-empty item in the player's inventory
-     * @param player the player to remove items from
-     */
-    void removeRandomItem(Player player) {
-        if (player.getInventory().items.size() == 0)
-            return;
-
-        int slotId = rand.nextInt(player.getInventory().items.size());
-
-        while(player.getInventory().getItem(slotId).equals(ItemStack.EMPTY))
-            slotId = rand.nextInt(player.getInventory().items.size());
-
-        int slotCount = player.getInventory().getItem(slotId).getCount() + 1;
-        int c = rand.nextInt(slotCount + 1);
-
-        System.out.println("Removing " + c + " of item " + player.getInventory().getItem(slotId));
-        player.getInventory().removeItem(slotId, c);
-    }
 
 }
