@@ -1,15 +1,26 @@
 package com.mco.mcrecog;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.screens.achievement.StatsScreen;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextComponent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.stats.Stat;
+import net.minecraft.stats.Stats;
 import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -21,6 +32,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
@@ -38,6 +50,7 @@ import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -130,6 +143,33 @@ public class McRecog
         // We don't want our summoned mobs to drop items
         if (event.getEntity().getPersistentData().getBoolean("dropless"))
             event.setCanceled(true);
+    }
+
+    @SubscribeEvent
+    public void onRenderEvent(RenderGameOverlayEvent.Pre event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        int deaths = minecraft.player.getStats().getValue(Stats.CUSTOM, Stats.DEATHS);
+
+        Font font = minecraft.font;
+        String overlayMessageString = "Deaths: " + deaths;
+
+        int l = font.width(overlayMessageString);
+        int screenWidth = minecraft.getWindow().getGuiScaledWidth();
+        int screenHeight = minecraft.getWindow().getGuiScaledHeight();
+
+        PoseStack stack = new PoseStack();
+
+        stack.pushPose();
+        stack.translate(MCRConfig.COMMON.deathCountX.get(), MCRConfig.COMMON.deathCountY.get(), 0.0D);
+        stack.scale(4.0F, 4.0F, 4.0F);
+
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+
+        //        stack, str,                  x,                      y,                color
+        font.drawShadow(stack, overlayMessageString, (float)(-l / 2), -20.0F, 16777215);
+        RenderSystem.disableBlend();
+        stack.popPose();
     }
 
     /**
@@ -406,7 +446,5 @@ public class McRecog
         // If the word was not found or the input was not a command, return null
         return null;
     }
-
-
 
 }

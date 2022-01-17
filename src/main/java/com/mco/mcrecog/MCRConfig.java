@@ -9,12 +9,22 @@ public class MCRConfig {
     public static class Common {
         public final ForgeConfigSpec.IntValue debugLevel;
 
+        public final ForgeConfigSpec.IntValue deathCountX;
+        public final ForgeConfigSpec.IntValue deathCountY;
+
         Common(final ForgeConfigSpec.Builder builder) {
             builder.comment("Config settings").push("common");
 
             debugLevel = builder
                     .comment("Debug level of comments: 0 none, 1 only highlighted word, 2 all voice inputs")
                     .defineInRange("debug_level", 0, 0, 2);
+
+            deathCountX = builder
+                    .comment("X position (in pixels) of the death counter on your screen")
+                    .defineInRange("death_count_x", 960, 0, 1920);
+            deathCountY = builder
+                    .comment("Y position (in pixels) of the death counter on your screen")
+                    .defineInRange("death_count_y", 360, 0, 1080);
         }
     }
     private static final ForgeConfigSpec commonSpec;
