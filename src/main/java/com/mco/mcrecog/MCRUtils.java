@@ -1,6 +1,12 @@
 package com.mco.mcrecog;
 
+import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.TextComponent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.stats.Stat;
+import net.minecraft.stats.Stats;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.EntityType;
@@ -9,14 +15,24 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.NeutralMob;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 public class MCRUtils {
     private static final Random rand = new Random();
+    /** Array of random useless items to select from */
+    public static final List<Item> USELESS_ITEMS = Arrays.asList(
+            Items.WHEAT_SEEDS, Items.BONE_MEAL, Items.TROPICAL_FISH, Items.OAK_LEAVES, Items.WET_SPONGE, Items.SEAGRASS,
+            Items.DEAD_BUSH, Items.SNOW, Items.BROWN_CARPET, Items.HORN_CORAL_BLOCK, Items.DEAD_BRAIN_CORAL,
+            Items.CRIMSON_BUTTON, Items.CLAY_BALL, Items.COCOA_BEANS, Items.PUFFERFISH, Items.ROTTEN_FLESH, Items.SMALL_AMETHYST_BUD
+    );
 
     /**
      * Method to summon any amount of entities with an optional target and set of potion effects
@@ -96,5 +112,17 @@ public class MCRUtils {
 
         System.out.println("Removing " + c + " of item " + player.getInventory().getItem(slotId));
         player.getInventory().removeItem(slotId, c);
+    }
+
+    /**
+     * Display a chat message to a player regarding how often they said a certain word
+     * @param player the player to display to
+     * @param sp the ServerPlayer to get the stats from
+     * @param word the word to print
+     * @param stat the stat in question
+     */
+    public static void displayStatistic(Player player, ServerPlayer sp, String word, ResourceLocation stat) {
+        player.sendMessage(new TextComponent("You said '" + word + "' " +
+                sp.getStats().getValue(Stats.CUSTOM, stat) + " times"), Util.NIL_UUID);
     }
 }
