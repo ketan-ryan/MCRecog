@@ -51,6 +51,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -148,17 +149,19 @@ public class McRecog
     @SubscribeEvent
     public void onRenderEvent(RenderGameOverlayEvent.Pre event) {
         Minecraft minecraft = Minecraft.getInstance();
-        int deaths = minecraft.player.getStats().getValue(Stats.CUSTOM, Stats.DEATHS);
-
+        int deaths = 0;
+        // Get number of deaths from player's stats, this only will work for one player
+        List<ServerPlayer> players = minecraft.getSingleplayerServer().getPlayerList().getPlayers();
+        if (players.size() > 0 &&  players.get(0) != null) {
+            ServerPlayer sp = players.get(0);
+            deaths = sp.getStats().getValue(Stats.CUSTOM, Stats.DEATHS);
+        }
         Font font = minecraft.font;
         String overlayMessageString = "Deaths: " + deaths;
-
         int l = font.width(overlayMessageString);
-        int screenWidth = minecraft.getWindow().getGuiScaledWidth();
-        int screenHeight = minecraft.getWindow().getGuiScaledHeight();
 
+        // Draw the words on the screen
         PoseStack stack = new PoseStack();
-
         stack.pushPose();
         stack.translate(MCRConfig.COMMON.deathCountX.get(), MCRConfig.COMMON.deathCountY.get(), 0.0D);
         stack.scale(4.0F, 4.0F, 4.0F);
