@@ -28,5 +28,7 @@
   "stat.mcrecog.up": "Times 'Up' said",
   "stat.mcrecog.craft": "Times 'Craft' said",
   "stat.mcrecog.village": "Times 'Village' said",
-  "stat.mcrecog.mine": "Times 'Mine' said"
+  "stat.mcrecog.mine": "Times 'Mine' said",
+  "stat.mcrecog.game": "Times 'Gam(e)' Said",
+  "stat.mcrecog.light": "Times 'Light' Said"
 }

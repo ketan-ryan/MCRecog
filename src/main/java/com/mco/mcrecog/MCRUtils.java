@@ -9,10 +9,7 @@ import net.minecraft.stats.Stat;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.NeutralMob;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -20,6 +17,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.Arrays;
 import java.util.List;
@@ -45,12 +43,31 @@ public class MCRUtils {
      * @param strength The strength of the effect
      * @param stacks The optional list of ItemStacks to be equipped with
      */
-    public static void summonEntity(Player player, Level level, EntityType<? extends LivingEntity> e, boolean hostile, int count,
+    public static void summonEntity(Player player, Level level, EntityType<? extends Entity> e, boolean hostile, int count,
                       MobEffect effect, int strength, ItemStack[] stacks) {
+        summonEntityOffset(player, level, e, hostile, count, effect, strength, stacks, 0);
+    }
+
+    /**
+     * Method to summon any amount of entities with an optional target and set of potion effects at a random offset
+     * @param player The player whose position to spawn the entities at
+     * @param level The instance ofLevel to which the player belongs
+     * @param e The EntityType to create
+     * @param hostile Whether the mob is a neutral mob that needs to be set hostile to the player
+     * @param count The amount of mobs to spawn
+     * @param effect The optional potion effect to spawn with
+     * @param strength The strength of the effect
+     * @param stacks The optional list of ItemStacks to be equipped with
+     * @param offset The max offset to spawn at
+     */
+    public static void summonEntityOffset(Player player, Level level, EntityType<? extends Entity> e,
+                                          boolean hostile, int count, MobEffect effect, int strength,
+                                          ItemStack[] stacks, int offset) {
         for(int i = 0; i < count; i++) {
-            LivingEntity entity = e.create(level);
+            Entity entity = e.create(level);
+
             if(entity != null) {
-                entity.setPos(player.position());
+                entity.setPos(player.position().add(randomOffset(offset)));
 
                 // Call setTarget if applicable
                 if(hostile) {
@@ -60,8 +77,8 @@ public class MCRUtils {
                         mob.setTarget(player);
                 }
                 // Spawn with potion effects if applicable
-                if(effect != null)
-                    entity.addEffect(new MobEffectInstance(effect, Integer.MAX_VALUE, strength));
+                if(effect != null && entity instanceof LivingEntity ent)
+                    ent.addEffect(new MobEffectInstance(effect, Integer.MAX_VALUE, strength));
                 // Equip with items if applicable
                 if(stacks != null && entity instanceof Monster monster) {
                     for (ItemStack stack : stacks)
@@ -72,6 +89,20 @@ public class MCRUtils {
                 level.addFreshEntity(entity);
             }
         }
+    }
+
+    /**
+     * Returns a Vec3 with a random offset in the x and z directions
+     * @param offset the max offset
+     * @return a Vec3 with the random offset applied
+     */
+    public static Vec3 randomOffset(int offset) {
+        int x = rand.nextInt(offset);
+        int z = rand.nextInt(offset);
+        int xFac = rand.nextDouble() < 0.5 ? -1 : 1;
+        int zFac = rand.nextDouble() < 0.5 ? -1 : 1;
+
+        return new Vec3(x * xFac, 0, z * zFac);
     }
 
     /**

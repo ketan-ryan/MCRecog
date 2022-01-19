@@ -17,8 +17,10 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stats;
 import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Rabbit;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -27,8 +29,11 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Explosion;
+import net.minecraft.world.level.ExplosionDamageCalculator;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
@@ -217,6 +222,8 @@ public class McRecog
         displayStatistic(player, sp, "Craft", MCRStats.CRAFT);
         displayStatistic(player, sp, "Village", MCRStats.VILLAGE);
         displayStatistic(player, sp, "Mine", MCRStats.MINE);
+        displayStatistic(player, sp, "Game", MCRStats.GAME);
+        displayStatistic(player, sp, "Light", MCRStats.LIGHT);
 
         player.sendMessage(new TextComponent("You died " + sp.getStats().getValue(Stats.CUSTOM, Stats.DEATHS) +
                 " times!").withStyle(ChatFormatting.DARK_RED), Util.NIL_UUID);
@@ -524,6 +531,18 @@ public class McRecog
                 }
                 word = "mine";
                 player.awardStat(MCRStats.MINE);
+            }
+            case "Random explosion" -> {
+                Vec3 vec = player.position().add(randomOffset(10));
+                level.explode(null, DamageSource.badRespawnPointExplosion(),  null, vec.x, vec.y,
+                        vec.z, 5.0F, true, Explosion.BlockInteraction.DESTROY);
+                word = "game";
+                player.awardStat(MCRStats.GAME);
+            }
+            case "Lightning" -> {
+                summonEntityOffset(player, level, EntityType.LIGHTNING_BOLT, false, 7, null, 0, null, 10);
+                word = "light";
+                player.awardStat(MCRStats.LIGHT);
             }
         }
 

@@ -38,6 +38,8 @@ public class MCRStats {
     public static final ResourceLocation CRAFT = registerCustomStat("craft");
     public static final ResourceLocation VILLAGE = registerCustomStat("village");
     public static final ResourceLocation MINE = registerCustomStat("mine");
+    public static final ResourceLocation GAME = registerCustomStat("game");
+    public static final ResourceLocation LIGHT = registerCustomStat("light");
 
     /**
      * Register the stat
