@@ -56,7 +56,7 @@ def get_response(response):
     if "bone" in response:
         ret.append("Spawn 7 skeletons")
     if "pig" in response:
-        ret.append("Drop hunger by 5")
+        ret.append("Lose all hunger")
     if "sub" in response:
         ret.append("Lose something random")
     if "creep" in response:
@@ -84,11 +84,11 @@ def get_response(response):
     if 'iron' in response:
         ret.append("Spawn aggro iron golem")
     if 'gold' in response:
-        ret.append("")
+        ret.append("Spawn pigmen")
     if 'diamond' in response:
         ret.append("Set to half a heart")
     if 'mod' in response:
-        ret.append("Adjust held item count")    # Set the stack count of his held item to a random between 0 and 64, with 64 being exponentially harder than 0
+        ret.append("Shuffle inventory")    # Shuffle inventory
     if 'port' in response:
         ret.append("Teleport randomly")
     if 'water' in response:
@@ -101,6 +101,14 @@ def get_response(response):
         ret.append("Surround in stone")
     if 'village' in response:
         ret.append("Spawn witches")
+    if 'mine' in response:
+        ret.append("Give something useless")
+    if 'gam' in response:
+        ret.append("Random explosion")
+    if 'light' in response:
+        ret.append("Lightning")
+    if 'poggers' in response:
+        ret.append("He said poggers")
 
     ret.append(res)
     return ret
