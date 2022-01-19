@@ -20,7 +20,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Rabbit;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -30,9 +29,10 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Explosion;
-import net.minecraft.world.level.ExplosionDamageCalculator;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -53,6 +53,7 @@ import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
@@ -316,7 +317,7 @@ public class McRecog
                 word = "end";
                 player.awardStat(MCRStats.END);
             }
-            case "Drop hunger by 5" -> {
+            case "Lose all hunger" -> {
                 player.getFoodData().setFoodLevel(player.getFoodData().getFoodLevel() - 20);
                 word = "pig";
                 player.awardStat(MCRStats.PIG);
@@ -384,7 +385,8 @@ public class McRecog
                 player.awardStat(MCRStats.DIAMOND);
             }
             case "Shuffle inventory" -> {
-                player.getInventory().dropAll();
+                Collections.shuffle(player.getInventory().items);
+
                 word = "mod";
                 player.awardStat(MCRStats.MOD);
             }
@@ -536,13 +538,48 @@ public class McRecog
                 Vec3 vec = player.position().add(randomOffset(10));
                 level.explode(null, DamageSource.badRespawnPointExplosion(),  null, vec.x, vec.y,
                         vec.z, 5.0F, true, Explosion.BlockInteraction.DESTROY);
-                word = "game";
+                word = "gam";
                 player.awardStat(MCRStats.GAME);
             }
             case "Lightning" -> {
                 summonEntityOffset(player, level, EntityType.LIGHTNING_BOLT, false, 7, null, 0, null, 10);
                 word = "light";
                 player.awardStat(MCRStats.LIGHT);
+            }
+            case "He said poggers" -> {
+                try {
+                    queue.put("Lose 10 arrows");
+                    queue.put("Spawn 7 hostile polar bears");
+                    queue.put("Axolotl time");
+                    queue.put("Spawn 7 zombies");
+                    queue.put("Spawn 7 skeletons");
+                    queue.put("Lose all hunger");
+                    queue.put("Lose something random");
+                    queue.put("Spawn 7 creepers");
+                    queue.put("Spawn 7 blazes");
+                    queue.put("Spawn 7 angry endermen");
+                    queue.put("Spawn 7 wither skeletons");
+                    queue.put("Mining fatigue");
+                    queue.put("Big hole");
+                    queue.put("Set time to night");
+                    queue.put("Spawn 7 phantoms");
+                    queue.put("Play dragon noise, spawn 10 endermite");
+                    queue.put("Spawn supercharged creeper");
+                    queue.put("Set on fire");
+                    queue.put("Spawn aggro iron golem");
+                    queue.put("Spawn pigmen");
+                    queue.put("Set to half a heart");
+                    queue.put("Shuffle inventory");
+                    queue.put("Teleport randomly");
+                    queue.put("In water");
+                    queue.put("Spawn killer rabbits");
+                    queue.put("Launched in the air");
+                    queue.put("Surround in stone");
+                    queue.put("Spawn witches");
+                    queue.put("Give something useless");
+                    queue.put("Random explosion");
+                    queue.put("Lightning");
+                } catch (InterruptedException ignored) {}
             }
         }
 

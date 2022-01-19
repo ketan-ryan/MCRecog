@@ -97,6 +97,7 @@ public class MCRUtils {
      * @return a Vec3 with the random offset applied
      */
     public static Vec3 randomOffset(int offset) {
+        if (offset == 0) return new Vec3(0,0,0);
         int x = rand.nextInt(offset);
         int z = rand.nextInt(offset);
         int xFac = rand.nextDouble() < 0.5 ? -1 : 1;
