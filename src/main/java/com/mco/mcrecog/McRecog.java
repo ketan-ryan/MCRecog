@@ -260,7 +260,7 @@ public class McRecog
             }
             case "Spawn 7 hostile polar bears" -> {
                 summonEntity(player, level, EntityType.POLAR_BEAR, true, 7, null, 0, null);
-                if(MCRConfig.COMMON.waterWhenSpawning && player.isInWater())
+                if(MCRConfig.COMMON.waterWhenSpawning.get() && player.isInWater())
                     player.addEffect(new MobEffectInstance(MCREffects.GRAVITY.get(), 1200, 0));
 
                 word = "bear";
@@ -294,7 +294,7 @@ public class McRecog
             }
             case "Spawn 7 creepers" -> {
                 summonEntity(player, level, EntityType.CREEPER, false, 7, null, 0, null);
-                if(MCRConfig.COMMON.waterWhenSpawning && player.isInWater())
+                if(MCRConfig.COMMON.waterWhenSpawning.get() && player.isInWater())
                     player.addEffect(new MobEffectInstance(MCREffects.GRAVITY.get(), 1200, 0));
 
                 word = "creep";
@@ -302,7 +302,7 @@ public class McRecog
             }
             case "Spawn 7 blazes" -> {
                 summonEntity(player, level, EntityType.BLAZE, false, 7, null, 0, null);
-                if(MCRConfig.COMMON.waterWhenSpawning && player.isInWater())
+                if(MCRConfig.COMMON.waterWhenSpawning.get() && player.isInWater())
                     player.addEffect(new MobEffectInstance(MCREffects.GRAVITY.get(), 1200, 0));
 
                 word = "rod";
@@ -319,7 +319,7 @@ public class McRecog
             case "Spawn 7 angry endermen" -> {
                 clearBlocksAbove(player, level);
                 summonEntity(player, level, EntityType.ENDERMAN, true, 7, null, 0, null);
-                if(MCRConfig.COMMON.waterWhenSpawning && player.isInWater())
+                if(MCRConfig.COMMON.waterWhenSpawning.get() && player.isInWater())
                     player.addEffect(new MobEffectInstance(MCREffects.GRAVITY.get(), 1200, 0));
 
                 word = "end";
