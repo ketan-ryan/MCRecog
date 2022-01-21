@@ -12,6 +12,8 @@ public class MCRConfig {
         public final ForgeConfigSpec.IntValue deathCountX;
         public final ForgeConfigSpec.IntValue deathCountY;
 
+        public final ForgeConfigSpec.BooleanValue waterWhenSpawning;
+
         Common(final ForgeConfigSpec.Builder builder) {
             builder.comment("Config settings").push("common");
 
@@ -25,6 +27,10 @@ public class MCRConfig {
             deathCountY = builder
                     .comment("Y position (in pixels) of the death counter on your screen")
                     .defineInRange("death_count_y", 360, 0, 1080);
+
+            waterWhenSpawning = builder
+                    .comment("Whether to give water effect when spawning mobs")
+                    .define("water_spawns", true);
         }
     }
     private static final ForgeConfigSpec commonSpec;

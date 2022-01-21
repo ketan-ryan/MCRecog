@@ -260,6 +260,8 @@ public class McRecog
             }
             case "Spawn 7 hostile polar bears" -> {
                 summonEntity(player, level, EntityType.POLAR_BEAR, true, 7, null, 0, null);
+                if(MCRConfig.COMMON.waterWhenSpawning && player.isInWater())
+                    player.addEffect(new MobEffectInstance(MCREffects.GRAVITY.get(), 1200, 0));
 
                 word = "bear";
                 player.awardStat(MCRStats.BEAR);
@@ -292,12 +294,16 @@ public class McRecog
             }
             case "Spawn 7 creepers" -> {
                 summonEntity(player, level, EntityType.CREEPER, false, 7, null, 0, null);
+                if(MCRConfig.COMMON.waterWhenSpawning && player.isInWater())
+                    player.addEffect(new MobEffectInstance(MCREffects.GRAVITY.get(), 1200, 0));
 
                 word = "creep";
                 player.awardStat(MCRStats.CREEP);
             }
             case "Spawn 7 blazes" -> {
                 summonEntity(player, level, EntityType.BLAZE, false, 7, null, 0, null);
+                if(MCRConfig.COMMON.waterWhenSpawning && player.isInWater())
+                    player.addEffect(new MobEffectInstance(MCREffects.GRAVITY.get(), 1200, 0));
 
                 word = "rod";
                 player.awardStat(MCRStats.ROD);
@@ -313,6 +319,8 @@ public class McRecog
             case "Spawn 7 angry endermen" -> {
                 clearBlocksAbove(player, level);
                 summonEntity(player, level, EntityType.ENDERMAN, true, 7, null, 0, null);
+                if(MCRConfig.COMMON.waterWhenSpawning && player.isInWater())
+                    player.addEffect(new MobEffectInstance(MCREffects.GRAVITY.get(), 1200, 0));
 
                 word = "end";
                 player.awardStat(MCRStats.END);
@@ -550,7 +558,6 @@ public class McRecog
                 try {
                     queue.put("Lose 10 arrows");
                     queue.put("Spawn 7 hostile polar bears");
-                    queue.put("Axolotl time");
                     queue.put("Spawn 7 zombies");
                     queue.put("Spawn 7 skeletons");
                     queue.put("Lose all hunger");
@@ -571,10 +578,8 @@ public class McRecog
                     queue.put("Set to half a heart");
                     queue.put("Shuffle inventory");
                     queue.put("Teleport randomly");
-                    queue.put("In water");
                     queue.put("Spawn killer rabbits");
                     queue.put("Launched in the air");
-                    queue.put("Surround in stone");
                     queue.put("Spawn witches");
                     queue.put("Give something useless");
                     queue.put("Random explosion");
