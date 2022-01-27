@@ -6,10 +6,14 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.GuiComponent;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextComponent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
@@ -30,13 +34,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.event.entity.player.AdvancementEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -50,6 +53,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.math.BigDecimal;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
@@ -87,7 +91,7 @@ public class McRecog
         }
 
         // Spawn a new thread that reads from the socket on the specified localhost:port and adds it to the blocking queue
-        new Thread(() ->{
+        new Thread(() -> {
             try {
                 Socket client = server.accept();
                 BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
@@ -95,7 +99,8 @@ public class McRecog
                 // Receive input while the program is running
                 while (true) {
                     String fromClient = in.readLine();
-                    queue.put(fromClient);
+                    if(fromClient != null)
+                        queue.put(fromClient);
                 }
             } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
@@ -106,6 +111,7 @@ public class McRecog
         MinecraftForge.EVENT_BUS.register(this);
         final IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         MCREffects.initialise(modEventBus);
+        Gui gui = new MCRGui(Minecraft.getInstance());
     }
 
     /**
@@ -115,11 +121,13 @@ public class McRecog
      */
     @SubscribeEvent
     public void onTickEvent(TickEvent.PlayerTickEvent event) {
-        // All of our events need to take place on the server side
+        // Almost all of our events need to take place on the server side
         if(!event.player.level.isClientSide()) {
             // Get the string off the queue
             String msg;
             while ((msg = queue.poll()) != null) {
+                if(msg.contains("STATS"))
+                    displayStat(event.player, msg);
                 Component result = parseAndHandle(msg, event.player, queue.peek());
 
                 // Config-dependent debugging
@@ -132,13 +140,36 @@ public class McRecog
                 }
             }
         }
+        // Sounds play on the client side
         else {
             String msg;
             while((msg = clientQueue.poll()) != null) {
                 if (msg.equals("Play dragon noise")) {
                     event.player.playSound(SoundEvents.ENDER_DRAGON_GROWL, 10.0F, 1.0F);
+                    if (event.player instanceof LocalPlayer p)
+                        p.getPersistentData().putFloat("beneficence", 1);
+
+                }
+                if (msg.equals("Ink Splat")) {
+                    event.player.playSound(SoundEvents.SLIME_SQUISH, 10.0F, 1.0F);
+                    if (event.player instanceof LocalPlayer p) {
+                        p.getPersistentData().putInt("splatTicks", SPLAT_TICKS);
+                        p.getPersistentData().putInt("splatStart", SPLAT_START);
+                    }
                 }
             }
+        }
+        // Update beneficence
+        if (event.player instanceof LocalPlayer p) {
+            float b = p.getPersistentData().getFloat("beneficence");
+            if (b > 0)
+                p.getPersistentData().putFloat("beneficence", b - 0.001F);
+
+            if(p.getPersistentData().getInt("splatStart") > 0)
+                p.getPersistentData().putInt("splatStart", p.getPersistentData().getInt("splatStart") - 1);
+
+            if(p.getPersistentData().getInt("splatStart") == 0 && p.getPersistentData().getInt("splatTicks") > 0)
+                p.getPersistentData().putInt("splatTicks", p.getPersistentData().getInt("splatTicks") - 1);
         }
     }
 
@@ -155,7 +186,7 @@ public class McRecog
         int deaths = 0;
         // Get number of deaths from player's stats, this only will work for one player
         List<ServerPlayer> players = minecraft.getSingleplayerServer().getPlayerList().getPlayers();
-        if (players.size() > 0 &&  players.get(0) != null) {
+        if (players.size() > 0 && players.get(0) != null) {
             ServerPlayer sp = players.get(0);
             deaths = sp.getStats().getValue(Stats.CUSTOM, Stats.DEATHS);
         }
@@ -167,7 +198,8 @@ public class McRecog
         PoseStack stack = new PoseStack();
         stack.pushPose();
         stack.translate(MCRConfig.COMMON.deathCountX.get(), MCRConfig.COMMON.deathCountY.get(), 0.0D);
-        stack.scale(4.0F, 4.0F, 4.0F);
+        float scale = BigDecimal.valueOf(MCRConfig.COMMON.deathCountScale.get()).floatValue();
+        stack.scale(scale, scale, scale);
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -176,60 +208,55 @@ public class McRecog
         font.drawShadow(stack, overlayMessageString, (float)(-l / 2), -20.0F, 16777215);
         RenderSystem.disableBlend();
         stack.popPose();
+
+        //Draw cooldown bar
+        if (minecraft.player.getPersistentData().getFloat("beneficence") > 0.0F) {
+            PoseStack barStack = new PoseStack();
+            barStack.pushPose();
+            barStack.scale(1.5F, 1.5F, 1.5F);
+            minecraft.getProfiler().push("cooldownBar");
+            RenderSystem.setShaderTexture(0, new ResourceLocation(MODID, "textures/mcr_icons.png"));
+            float f = minecraft.player.getPersistentData().getFloat("beneficence");
+            int j = (int) (f * 97.0f);
+            int y = MCRConfig.COMMON.deathCountY.get() - 105;
+            int x = MCRConfig.COMMON.deathCountX.get() - 87;
+            // PoseStack         Position on Screen   Tex x      Tex Y       bar width    Bar height   Tex width      Tex white
+            GuiComponent.blit(barStack, x, y, 0, 0, 97, 5, 256, 256);
+            if (j > 0) // If we have progress
+                GuiComponent.blit(barStack, x, y, 0, 5, j, 5, 256, 256);
+            minecraft.getProfiler().pop();
+            barStack.popPose();
+        }
     }
 
     @SubscribeEvent
     public void onAchievementGet(AdvancementEvent event) {
+        // Shuffle words when entering the end or nether
+        String adv = event.getAdvancement().getId().toString();
+
+        // Shuffle triggers when entering the end or nether
+        if(adv.equals("minecraft:story/enter_the_end") || adv.equals("minecraft:story/enter_the_nether")) {
+            Collections.shuffle(RESPONSES);
+            System.out.println("Shuffled list");
+        }
+
         // We only want to display stats when the game is completed
-        if(!event.getAdvancement().getId().toString().equals("minecraft:end/kill_dragon")) return;
+        if(adv.equals("minecraft:end/kill_dragon")) {
+            List<ServerPlayer> players = Minecraft.getInstance().getSingleplayerServer().getPlayerList().getPlayers();
+            if (!(players.size() > 0 && players.get(0) != null)) return;
 
-        List<ServerPlayer> players = Minecraft.getInstance().getSingleplayerServer().getPlayerList().getPlayers();
-        if (!(players.size() > 0 && players.get(0) != null)) return;
+            ServerPlayer sp = players.get(0);
 
-        ServerPlayer sp = players.get(0);
-
-        // Display all statistics on beating the game
-        Player player = event.getPlayer();
-        player.sendMessage(new TextComponent("Congratulations " + player.getDisplayName().getString() +
-                " on beating the game!")
-                .withStyle(ChatFormatting.GOLD).withStyle(ChatFormatting.BOLD), Util.NIL_UUID);
-
-        displayStatistic(player, sp, "No Shot", MCRStats.NO_SHOT);
-        displayStatistic(player, sp, "Bear", MCRStats.BEAR);
-        displayStatistic(player, sp, "Axolotl", MCRStats.AXOLOTL);
-        displayStatistic(player, sp, "Rot", MCRStats.ROT);
-        displayStatistic(player, sp, "Bone", MCRStats.BONE);
-        displayStatistic(player, sp, "Pig", MCRStats.PIG);
-        displayStatistic(player, sp, "Sub", MCRStats.SUB);
-        displayStatistic(player, sp, "Creep", MCRStats.CREEP);
-        displayStatistic(player, sp, "Rod", MCRStats.ROD);
-        displayStatistic(player, sp, "End", MCRStats.END);
-        displayStatistic(player, sp, "Nether", MCRStats.NETHER);
-        displayStatistic(player, sp, "Cave", MCRStats.CAVE);
-        displayStatistic(player, sp, "Follow", MCRStats.FOLLOW);
-        displayStatistic(player, sp, "Day", MCRStats.DAY);
-        displayStatistic(player, sp, "Bed", MCRStats.BED);
-        displayStatistic(player, sp, "Dragon", MCRStats.DRAGON);
-        displayStatistic(player, sp, "Twitch", MCRStats.TWITCH);
-        displayStatistic(player, sp, "Coal", MCRStats.COAL);
-        displayStatistic(player, sp, "Iron", MCRStats.IRON);
-        displayStatistic(player, sp, "Gold", MCRStats.GOLD);
-        displayStatistic(player, sp, "Diamond", MCRStats.DIAMOND);
-        displayStatistic(player, sp, "Mod", MCRStats.MOD);
-        displayStatistic(player, sp, "Port", MCRStats.PORT);
-        displayStatistic(player, sp, "Water", MCRStats.WATER);
-        displayStatistic(player, sp, "Block", MCRStats.BLOCK);
-        displayStatistic(player, sp, "Up", MCRStats.UP);
-        displayStatistic(player, sp, "Craft", MCRStats.CRAFT);
-        displayStatistic(player, sp, "Village", MCRStats.VILLAGE);
-        displayStatistic(player, sp, "Mine", MCRStats.MINE);
-        displayStatistic(player, sp, "Game", MCRStats.GAME);
-        displayStatistic(player, sp, "Light", MCRStats.LIGHT);
-
-        player.sendMessage(new TextComponent("You died " + sp.getStats().getValue(Stats.CUSTOM, Stats.DEATHS) +
-                " times!").withStyle(ChatFormatting.DARK_RED), Util.NIL_UUID);
-        player.sendMessage(new TextComponent("Hope you enjoyed!"), Util.NIL_UUID);
-        player.sendMessage(new TextComponent("Mod made by HazeyGoldenAntlers aka TheMinecraftOverlord on YT"), Util.NIL_UUID);
+            // Display all statistics on beating the game
+            Player player = event.getPlayer();
+            player.sendMessage(new TextComponent("Congratulations " + player.getDisplayName().getString() +
+                    " on beating the game!")
+                    .withStyle(ChatFormatting.GOLD).withStyle(ChatFormatting.BOLD), Util.NIL_UUID);
+            player.sendMessage(new TextComponent("You died " + sp.getStats().getValue(Stats.CUSTOM, Stats.DEATHS) +
+                    " times!").withStyle(ChatFormatting.DARK_RED), Util.NIL_UUID);
+            player.sendMessage(new TextComponent("Hope you enjoyed!"), Util.NIL_UUID);
+            player.sendMessage(new TextComponent("Mod made by HazeyGoldenAntlers aka TheMinecraftOverlord on YT"), Util.NIL_UUID);
+        }
     }
 
     /**
@@ -248,344 +275,319 @@ public class McRecog
 
         if (peek == null)
             peek = "";
-        // Now we go down the cases
-        switch (msg) {
-            case "Lose 10 arrows" -> {
-                int slot = player.getInventory().findSlotMatchingItem(new ItemStack(Items.ARROW));
-                if (slot != -1) {
-                    player.getInventory().removeItem(slot, 10);
-                }
-                word = "no shot";
-                player.awardStat(MCRStats.NO_SHOT);
-            }
-            case "Spawn 7 hostile polar bears" -> {
-                summonEntity(player, level, EntityType.POLAR_BEAR, true, 7, null, 0, null);
-                if(MCRConfig.COMMON.waterWhenSpawning.get() && player.isInWater())
-                    player.addEffect(new MobEffectInstance(MCREffects.GRAVITY.get(), 1200, 0));
 
-                word = "bear";
-                player.awardStat(MCRStats.BEAR);
+        // Now we go down the possible responses
+        if (RESPONSES.get(0).equals(msg) ) {
+            // No Shot
+            int slot = player.getInventory().findSlotMatchingItem(new ItemStack(Items.ARROW));
+            if (slot != -1) {
+                player.getInventory().removeItem(slot, 10);
             }
-            case "Axolotl time" -> {
-                // Duration      Amplifier
-                player.addEffect(new MobEffectInstance(MobEffects.POISON, 1200, 1));
-                player.addEffect(new MobEffectInstance(MobEffects.HUNGER, 300, 2));
-                player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 300, 0));
-                summonEntity(player, level, EntityType.TROPICAL_FISH, false, 15, null, 0, null);
-
-                word = "axolotl";
-                player.awardStat(MCRStats.AXOLOTL);
-            }
-            case "Spawn 7 zombies" -> {
-                summonEntity(player, level, EntityType.ZOMBIE, false, 7, MobEffects.MOVEMENT_SPEED,
-                        rand.nextInt(6),
-                        new ItemStack[]{new ItemStack(Items.IRON_HELMET), new ItemStack(Items.IRON_SWORD)});
-
-                word = "rot";
-                player.awardStat(MCRStats.ROT);
-            }
-            case "Spawn 7 skeletons" -> {
-                summonEntity(player, level, EntityType.SKELETON, false, 7, MobEffects.MOVEMENT_SPEED,
-                        rand.nextInt(6),
-                        new ItemStack[]{new ItemStack(Items.IRON_HELMET), new ItemStack(Items.IRON_SWORD)});
-
-                word = "bone";
-                player.awardStat(MCRStats.BONE);
-            }
-            case "Spawn 7 creepers" -> {
-                summonEntity(player, level, EntityType.CREEPER, false, 7, null, 0, null);
-                if(MCRConfig.COMMON.waterWhenSpawning.get() && player.isInWater())
-                    player.addEffect(new MobEffectInstance(MCREffects.GRAVITY.get(), 1200, 0));
-
-                word = "creep";
-                player.awardStat(MCRStats.CREEP);
-            }
-            case "Spawn 7 blazes" -> {
-                summonEntity(player, level, EntityType.BLAZE, false, 7, null, 0, null);
-                if(MCRConfig.COMMON.waterWhenSpawning.get() && player.isInWater())
-                    player.addEffect(new MobEffectInstance(MCREffects.GRAVITY.get(), 1200, 0));
-
-                word = "rod";
-                player.awardStat(MCRStats.ROD);
-            }
-            case "Spawn 7 wither skeletons" -> {
-                clearBlocksAbove(player, level);
-                summonEntity(player, level, EntityType.WITHER_SKELETON, false, 7, MobEffects.MOVEMENT_SPEED, 2,
-                        new ItemStack[]{new ItemStack(Items.DIAMOND_SWORD)});
-
-                word = "nether";
-                player.awardStat(MCRStats.NETHER);
-            }
-            case "Spawn 7 angry endermen" -> {
-                clearBlocksAbove(player, level);
-                summonEntity(player, level, EntityType.ENDERMAN, true, 7, null, 0, null);
-                if(MCRConfig.COMMON.waterWhenSpawning.get() && player.isInWater())
-                    player.addEffect(new MobEffectInstance(MCREffects.GRAVITY.get(), 1200, 0));
-
-                word = "end";
-                player.awardStat(MCRStats.END);
-            }
-            case "Lose all hunger" -> {
-                player.getFoodData().setFoodLevel(player.getFoodData().getFoodLevel() - 20);
-                word = "pig";
-                player.awardStat(MCRStats.PIG);
-            }
-            case "Mining fatigue" -> {
-                // A minute of mining fatigue
-                player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 1200, 1));
-                word = "cave";
-                player.awardStat(MCRStats.CAVE);
-            }
-            case "Lose something random" -> {
-                // 36 from inventory, 1 from offhand, 4 from armor
-                int chances = rand.nextInt(41);
-                if(chances < 36) {
-                    // Remove random item from inventory
-                    removeRandomItem(player);
-                }
-                else if(chances == 37) {
-                    // Clear offhand
-                    if(!player.getInventory().offhand.get(0).equals(ItemStack.EMPTY))
-                        player.getInventory().offhand.clear();
-                } else {
-                    // Remove random armor piece
-                    int slot = rand.nextInt(4);
-                    while (player.getInventory().armor.get(slot).equals(ItemStack.EMPTY))
-                        slot = rand.nextInt(4);
-
-                    player.getInventory().armor.get(slot).shrink(1);
-                }
-
-                word = "sub";
-                player.awardStat(MCRStats.SUB);
-            }
-            case "Big hole" -> {
-                BlockPos pos = player.blockPosition();
-                for(int i = 1; i < 22; i++) {
-                    level.setBlock(pos.north().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
-                    level.setBlock(pos.west().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
-                    level.setBlock(pos.south().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
-                    level.setBlock(pos.east().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
-
-                    level.setBlock(pos.offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
-
-                    level.setBlock(pos.east().north().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
-                    level.setBlock(pos.east().south().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
-                    level.setBlock(pos.west().north().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
-                    level.setBlock(pos.west().south().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
-                }
-                word = "follow";
-                player.awardStat(MCRStats.FOLLOW);
-            }
-            case "Set time to night" -> {
-                ServerLevel l;
-                if (level instanceof ServerLevel) {
-                    l = (ServerLevel) level;
-                    l.setDayTime(20000);
-                }
-                word = "day";
-                player.awardStat(MCRStats.DAY);
-            }
-            case "Set to half a heart" -> {
-                player.setHealth(1);
-
-                word = "diamond";
-                player.awardStat(MCRStats.DIAMOND);
-            }
-            case "Shuffle inventory" -> {
-                Collections.shuffle(player.getInventory().items);
-
-                word = "mod";
-                player.awardStat(MCRStats.MOD);
-            }
-            case "Set on fire" -> {
-                player.setSecondsOnFire(100);
-                player.setRemainingFireTicks(1000);
-                player.setSharedFlagOnFire(true);
-
-                word = "coal";
-                player.awardStat(MCRStats.COAL);
-            }
-            case "Spawn 7 phantoms" -> {
-                summonEntity(player, level, EntityType.PHANTOM, false, 7, MobEffects.FIRE_RESISTANCE,
-                        Integer.MAX_VALUE, null);
-
-                word = "bed";
-                player.awardStat(MCRStats.BED);
-            }
-            case "In water" -> {
-                player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, rand.nextInt(1200),
-                        rand.nextInt(3)));
+            word = TRIGGERS.get(0);
+        }
+        if (RESPONSES.get(1).equals(msg) ) {
+            // Bear
+            summonEntityOffset(player, level, EntityType.POLAR_BEAR, true, 7, null, 0, null,4);
+            if(MCRConfig.COMMON.waterWhenSpawning.get() && player.isInWater())
                 player.addEffect(new MobEffectInstance(MCREffects.GRAVITY.get(), 1200, 0));
 
-                word = "water";
-                player.awardStat(MCRStats.WATER);
+            word = TRIGGERS.get(1);
+        }
+        if (RESPONSES.get(2).equals(msg) ) {
+            // Axolotl
+            // Duration      Amplifier
+            player.addEffect(new MobEffectInstance(MobEffects.POISON, 1200, 1));
+            player.addEffect(new MobEffectInstance(MobEffects.HUNGER, 300, 2));
+            player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 300, 0));
+            summonEntity(player, level, EntityType.TROPICAL_FISH, false, 15, null, 0, null);
+
+            word = TRIGGERS.get(2);
+        }
+        if (RESPONSES.get(3).equals(msg) ) {
+            // Rot
+            summonEntityOffset(player, level, EntityType.ZOMBIE, false, 7, MobEffects.MOVEMENT_SPEED,
+                    rand.nextInt(2),
+                    new ItemStack[]{new ItemStack(Items.IRON_HELMET), new ItemStack(Items.IRON_SWORD)}, 2);
+
+            word = TRIGGERS.get(3);
+        }
+        if (RESPONSES.get(4).equals(msg) ) {
+            // Bone
+            summonEntity(player, level, EntityType.SKELETON, false, 7, MobEffects.MOVEMENT_SPEED,
+                    rand.nextInt(2),
+                    new ItemStack[]{new ItemStack(Items.IRON_HELMET), new ItemStack(Items.STONE_SWORD)});
+
+            word = TRIGGERS.get(4);
+        }
+        if (RESPONSES.get(5).equals(msg) ) {
+            // Pig
+            player.getFoodData().setFoodLevel(player.getFoodData().getFoodLevel() - 20);
+            word = TRIGGERS.get(5);
+        }
+        if (RESPONSES.get(6).equals(msg))  {
+            // Sub
+            // 36 from inventory, 1 from offhand, 4 from armor
+            int chances = rand.nextInt(41);
+            if(chances < 36) {
+                // Remove random item from inventory
+                removeRandomItem(player);
             }
-            case "Teleport randomly" -> {
-                double d0 = player.getX();
-                double d1 = player.getY();
-                double d2 = player.getZ();
+            else if(chances == 37) {
+                // Clear offhand
+                if(!player.getInventory().offhand.get(0).equals(ItemStack.EMPTY))
+                    player.getInventory().offhand.clear();
+            } else {
+                // Remove random armor piece
+                int slot = rand.nextInt(4);
+                while (player.getInventory().armor.get(slot).equals(ItemStack.EMPTY))
+                    slot = rand.nextInt(4);
 
-                double d3 = player.getX() + (player.getRandom().nextDouble() - 0.5D) * 16.0D;
-                double d4 = Mth.clamp(player.getY() + (double)(player.getRandom().nextInt(16) - 8),
-                        level.getMinBuildHeight(), (level.getMinBuildHeight() + ((ServerLevel)level).getLogicalHeight() - 1));
-                double d5 = player.getZ() + (player.getRandom().nextDouble() - 0.5D) * 16.0D;
+                player.getInventory().armor.get(slot).shrink(1);
+            }
 
-                net.minecraftforge.event.entity.EntityTeleportEvent.ChorusFruit event =
-                        net.minecraftforge.event.ForgeEventFactory.onChorusFruitTeleport(player, d3, d4, d5);
-                if (player.randomTeleport(event.getTargetX(), event.getTargetY(), event.getTargetZ(), true)) {
-                    SoundEvent soundevent = SoundEvents.CHORUS_FRUIT_TELEPORT;
-                    level.playSound(null, d0, d1, d2, soundevent, SoundSource.PLAYERS, 1.0F, 1.0F);
-                    player.playSound(soundevent, 1.0F, 1.0F);
+            word = TRIGGERS.get(6);
+        }
+        if (RESPONSES.get(7).equals(msg) ) {
+            // Creep
+            summonEntityOffset(player, level, EntityType.CREEPER, false, 7, null, 0, null, 2);
+            if(MCRConfig.COMMON.waterWhenSpawning.get() && player.isInWater())
+                player.addEffect(new MobEffectInstance(MCREffects.GRAVITY.get(), 1200, 0));
+
+            word = TRIGGERS.get(7);
+        }
+        if (RESPONSES.get(8).equals(msg) ) {
+            // Rod
+            summonEntity(player, level, EntityType.BLAZE, false, 7, null, 0, null);
+            if(MCRConfig.COMMON.waterWhenSpawning.get() && player.isInWater())
+                player.addEffect(new MobEffectInstance(MCREffects.GRAVITY.get(), 1200, 0));
+
+            word = TRIGGERS.get(8);
+        }
+        if (RESPONSES.get(9).equals(msg) ) {
+            // End
+            clearBlocksAbove(player, level);
+            summonEntity(player, level, EntityType.ENDERMAN, true, 7, null, 0, null);
+            if(MCRConfig.COMMON.waterWhenSpawning.get() && player.isInWater())
+                player.addEffect(new MobEffectInstance(MCREffects.GRAVITY.get(), 1200, 0));
+
+            word = TRIGGERS.get(9);
+        }
+        if (RESPONSES.get(10).equals(msg) ) {
+            // Nether
+            clearBlocksAbove(player, level);
+            summonEntity(player, level, EntityType.WITHER_SKELETON, false, 7, MobEffects.MOVEMENT_SPEED, 2,
+                    new ItemStack[]{new ItemStack(Items.GOLDEN_SWORD)});
+
+            word = TRIGGERS.get(10);
+        }
+        if (RESPONSES.get(11).equals(msg))  {
+            // Cave
+            // A minute of mining fatigue
+            player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 600, 4));
+            word = TRIGGERS.get(11);
+        }
+
+        if (RESPONSES.get(12).equals(msg))  {
+            // Follow
+            BlockPos pos = player.blockPosition();
+            for(int i = 1; i < 22; i++) {
+                level.setBlock(pos.north().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+                level.setBlock(pos.west().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+                level.setBlock(pos.south().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+                level.setBlock(pos.east().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+
+                level.setBlock(pos.offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+
+                level.setBlock(pos.east().north().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+                level.setBlock(pos.east().south().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+                level.setBlock(pos.west().north().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+                level.setBlock(pos.west().south().offset(0, -i, 0), Blocks.AIR.defaultBlockState(), 2);
+            }
+            word = TRIGGERS.get(12);
+        }
+        if (RESPONSES.get(13).equals(msg))  {
+            // Day
+            ServerLevel l;
+            if (level instanceof ServerLevel) {
+                l = (ServerLevel) level;
+                l.setDayTime(20000);
+            }
+            word = TRIGGERS.get(13);
+        }
+        if (RESPONSES.get(14).equals(msg))  {
+            // Bed
+            summonEntity(player, level, EntityType.PHANTOM, false, 7, MobEffects.DAMAGE_RESISTANCE,
+                    2, null);
+
+            word = TRIGGERS.get(14);
+        }
+        if (RESPONSES.get(15).equals(msg))  {
+            // Dragon
+            summonEntity(player, level, EntityType.ENDERMITE, false, 10, null, 0, null);
+
+            clientQueue.add("Play dragon noise");
+            word = TRIGGERS.get(15);
+        }
+        if (RESPONSES.get(16).equals(msg))  {
+            // Twitch
+            Creeper creeper = EntityType.CREEPER.create(level);
+            if (creeper != null) {
+                CompoundTag tag = new CompoundTag();
+                tag.putBoolean("powered", true);
+                creeper.readAdditionalSaveData(tag);
+                creeper.setTarget(player);
+
+                creeper.getPersistentData().putBoolean("dropless", true);
+
+                creeper.setPos(player.position());
+                level.addFreshEntity(creeper);
+            }
+            word = TRIGGERS.get(16);
+        }
+        if (RESPONSES.get(17).equals(msg))  {
+            // Coal
+            player.setSecondsOnFire(100);
+            player.setRemainingFireTicks(1000);
+            player.setSharedFlagOnFire(true);
+
+            word = TRIGGERS.get(17);
+        }
+        if (RESPONSES.get(18).equals(msg))  {
+            // Iron
+            summonEntity(player, level, EntityType.IRON_GOLEM, true, 1, null, 0, null);
+
+            word = TRIGGERS.get(18);
+        }
+        if (RESPONSES.get(19).equals(msg))  {
+            // Gold
+            summonEntity(player, level, EntityType.PIGLIN_BRUTE, true, 7, null, 0,
+                    new ItemStack[]{new ItemStack(Items.GOLDEN_SWORD),
+                            new ItemStack(Items.GOLDEN_HELMET),
+                            new ItemStack(Items.GOLDEN_CHESTPLATE)});
+
+            word = TRIGGERS.get(19);
+        }
+        if (RESPONSES.get(20).equals(msg))  {
+            // Diamond
+            player.setHealth(1);
+
+            word = TRIGGERS.get(20);
+        }
+        if (RESPONSES.get(21).equals(msg))  {
+            // Mod
+            Collections.shuffle(player.getInventory().items);
+
+            word = TRIGGERS.get(21);
+        }
+        if (RESPONSES.get(22).equals(msg))  {
+            // Port
+            double d0 = player.getX();
+            double d1 = player.getY();
+            double d2 = player.getZ();
+
+            double d3 = player.getX() + (player.getRandom().nextDouble() - 0.5D) * 16.0D;
+            double d4 = Mth.clamp(player.getY() + (double)(player.getRandom().nextInt(16) - 8),
+                    level.getMinBuildHeight(), (level.getMinBuildHeight() + ((ServerLevel)level).getLogicalHeight() - 1));
+            double d5 = player.getZ() + (player.getRandom().nextDouble() - 0.5D) * 16.0D;
+
+            net.minecraftforge.event.entity.EntityTeleportEvent.ChorusFruit event =
+                    net.minecraftforge.event.ForgeEventFactory.onChorusFruitTeleport(player, d3, d4, d5);
+            if (player.randomTeleport(event.getTargetX(), event.getTargetY(), event.getTargetZ(), true)) {
+                SoundEvent soundevent = SoundEvents.CHORUS_FRUIT_TELEPORT;
+                level.playSound(null, d0, d1, d2, soundevent, SoundSource.PLAYERS, 1.0F, 1.0F);
+                player.playSound(soundevent, 1.0F, 1.0F);
+            }
+
+            word = TRIGGERS.get(22);
+        }
+        if (RESPONSES.get(23).equals(msg))  {
+            // Water
+            player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, rand.nextInt(1200),
+                    rand.nextInt(3)));
+            player.addEffect(new MobEffectInstance(MCREffects.GRAVITY.get(), 1200, 0));
+
+            word = TRIGGERS.get(23);
+        }
+        if (RESPONSES.get(24).equals(msg))  {
+            // Block
+            for(int i = 0; i < 7; i++) {
+                Rabbit rabbit = EntityType.RABBIT.create(level);
+                if (rabbit != null) {
+                    rabbit.setRabbitType(99);
+                    rabbit.setPos(player.position().add(rand.nextInt(3), 1, rand.nextInt(3)));
+                    rabbit.getPersistentData().putBoolean("dropless", true);
+                    level.addFreshEntity(rabbit);
                 }
-
-                word = "port";
-                player.awardStat(MCRStats.PORT);
             }
-            case "Spawn killer rabbits" -> {
-                for(int i = 0; i < 7; i++) {
-                    Rabbit rabbit = EntityType.RABBIT.create(level);
-                    if (rabbit != null) {
-                        rabbit.setRabbitType(99);
-                        rabbit.setPos(player.position().add(rand.nextInt(3), 1, rand.nextInt(3)));
-                        rabbit.getPersistentData().putBoolean("dropless", true);
-                        level.addFreshEntity(rabbit);
-                    }
-                }
-                word = "block";
-                player.awardStat(MCRStats.BLOCK);
-            }
-            case "Launched in the air" -> {
-                int height = 100;
-                BlockPos pos = player.blockPosition().offset(0, height, 0);
+            word = TRIGGERS.get(24);
+        }
+        if (RESPONSES.get(25).equals(msg))  {
+            // Up
+            int height = 100;
+            BlockPos pos = player.blockPosition().offset(0, height, 0);
 
+            if(!player.isInWater() && !level.dimensionType().hasCeiling()) {
                 while (!level.getBlockState(pos).equals(Blocks.AIR.defaultBlockState())) {
                     height += 100;
                     pos = player.blockPosition().offset(0, height, 0);
                 }
                 player.moveTo(pos.getX(), pos.getY(), pos.getZ());
-                word = "up";
-                player.awardStat(MCRStats.UP);
+                word = TRIGGERS.get(25);
             }
-            case "Spawn supercharged creeper" -> {
-                Creeper creeper = EntityType.CREEPER.create(level);
-                if (creeper != null) {
-                    CompoundTag tag = new CompoundTag();
-                    tag.putBoolean("powered", true);
-                    creeper.readAdditionalSaveData(tag);
-                    creeper.setTarget(player);
+        }
+        if (RESPONSES.get(26).equals(msg))  {
+            // Craft
+            BlockPos pos = player.blockPosition();
+            for(int i = 0; i < 3; i ++) {
+                level.setBlock(pos.north().offset(0, i, 0), Blocks.GRANITE.defaultBlockState(), 2);
+                level.setBlock(pos.west().offset(0, i, 0), Blocks.GRANITE.defaultBlockState(), 2);
+                level.setBlock(pos.south().offset(0, i, 0), Blocks.GRANITE.defaultBlockState(), 2);
+                level.setBlock(pos.east().offset(0, i, 0), Blocks.GRANITE.defaultBlockState(), 2);
 
-                    creeper.getPersistentData().putBoolean("dropless", true);
+                level.setBlock(pos.east().north().offset(0, i, 0), Blocks.GRANITE.defaultBlockState(), 2);
+                level.setBlock(pos.east().south().offset(0, i, 0), Blocks.GRANITE.defaultBlockState(), 2);
+                level.setBlock(pos.west().north().offset(0, i, 0), Blocks.GRANITE.defaultBlockState(), 2);
+                level.setBlock(pos.west().south().offset(0, i, 0), Blocks.GRANITE.defaultBlockState(), 2);
+            }
+            level.setBlock(pos.below(), Blocks.GRANITE.defaultBlockState(), 2);
+            level.setBlock(pos.offset(0, 2, 0), Blocks.GRANITE.defaultBlockState(), 2);
 
-                    creeper.setPos(player.position());
-                    level.addFreshEntity(creeper);
-                }
-                word = "twitch";
-                player.awardStat(MCRStats.TWITCH);
-            }
-            case "Spawn aggro iron golem" -> {
-                summonEntity(player, level, EntityType.IRON_GOLEM, true, 1, null, 0, null);
+            word = TRIGGERS.get(26);
+        }
+        if (RESPONSES.get(27).equals(msg))  {
+            // Village
+            summonEntity(player, level, EntityType.WITCH, false, 4, MobEffects.INVISIBILITY, 0, null);
+            word = TRIGGERS.get(27);
+        }
+        if (RESPONSES.get(28).equals(msg))  {
+            // Mine
+            Item randItem = USELESS_ITEMS.get(rand.nextInt(USELESS_ITEMS.size()));
 
-                word = "iron";
-                player.awardStat(MCRStats.IRON);
+            // If their inventory is full, spawn the item in the world
+            if(!player.getInventory().add(new ItemStack(randItem, rand.nextInt(64)))) {
+                ItemEntity itementity = new ItemEntity(level, player.getX(), player.getY(), player.getZ(),
+                        new ItemStack(randItem, rand.nextInt(64)).copy());
+                itementity.setDefaultPickUpDelay();
+                level.addFreshEntity(itementity);
             }
-            case "Surround in stone" -> {
-                BlockPos pos = player.blockPosition();
-                for(int i = 0; i < 3; i ++) {
-                    level.setBlock(pos.north().offset(0, i, 0), Blocks.GRANITE.defaultBlockState(), 2);
-                    level.setBlock(pos.west().offset(0, i, 0), Blocks.GRANITE.defaultBlockState(), 2);
-                    level.setBlock(pos.south().offset(0, i, 0), Blocks.GRANITE.defaultBlockState(), 2);
-                    level.setBlock(pos.east().offset(0, i, 0), Blocks.GRANITE.defaultBlockState(), 2);
-
-                    level.setBlock(pos.east().north().offset(0, i, 0), Blocks.GRANITE.defaultBlockState(), 2);
-                    level.setBlock(pos.east().south().offset(0, i, 0), Blocks.GRANITE.defaultBlockState(), 2);
-                    level.setBlock(pos.west().north().offset(0, i, 0), Blocks.GRANITE.defaultBlockState(), 2);
-                    level.setBlock(pos.west().south().offset(0, i, 0), Blocks.GRANITE.defaultBlockState(), 2);
-                }
-                level.setBlock(pos.below(), Blocks.GRANITE.defaultBlockState(), 2);
-                level.setBlock(pos.offset(0, 2, 0), Blocks.GRANITE.defaultBlockState(), 2);
-
-                word = "craft";
-                player.awardStat(MCRStats.CRAFT);
-            }
-            case "Spawn witches" -> {
-                summonEntity(player, level, EntityType.WITCH, false, 4, MobEffects.INVISIBILITY, 0, null);
-                word = "village";
-                player.awardStat(MCRStats.VILLAGE);
-            }
-            case "Play dragon noise, spawn 10 endermite" -> {
-                summonEntity(player, level, EntityType.ENDERMITE, false, 10, null, 0, null);
-
-                clientQueue.add("Play dragon noise");
-                word = "dragon";
-                player.awardStat(MCRStats.DRAGON);
-            }
-            case "Spawn pigmen" -> {
-                summonEntity(player, level, EntityType.PIGLIN_BRUTE, true, 7, null, 0,
-                        new ItemStack[]{new ItemStack(Items.GOLDEN_SWORD),
-                        new ItemStack(Items.GOLDEN_HELMET),
-                        new ItemStack(Items.GOLDEN_CHESTPLATE)});
-
-                word = "gold";
-                player.awardStat(MCRStats.GOLD);
-            }
-            case "Give something useless" -> {
-                Item randItem = USELESS_ITEMS.get(rand.nextInt(USELESS_ITEMS.size()));
-
-                // If their inventory is full, spawn the item in the world
-                if(!player.getInventory().add(new ItemStack(randItem, rand.nextInt(64)))) {
-                    ItemEntity itementity = new ItemEntity(level, player.getX(), player.getY(), player.getZ(),
-                            new ItemStack(randItem, rand.nextInt(64)).copy());
-                    itementity.setDefaultPickUpDelay();
-                    level.addFreshEntity(itementity);
-                }
-                word = "mine";
-                player.awardStat(MCRStats.MINE);
-            }
-            case "Random explosion" -> {
-                Vec3 vec = player.position().add(randomOffset(10));
-                level.explode(null, DamageSource.badRespawnPointExplosion(),  null, vec.x, vec.y,
-                        vec.z, 5.0F, true, Explosion.BlockInteraction.DESTROY);
-                word = "gam";
-                player.awardStat(MCRStats.GAME);
-            }
-            case "Lightning" -> {
-                summonEntityOffset(player, level, EntityType.LIGHTNING_BOLT, false, 7, null, 0, null, 10);
-                word = "light";
-                player.awardStat(MCRStats.LIGHT);
-            }
-            case "He said poggers" -> {
-                try {
-                    queue.put("Lose 10 arrows");
-                    queue.put("Spawn 7 hostile polar bears");
-                    queue.put("Spawn 7 zombies");
-                    queue.put("Spawn 7 skeletons");
-                    queue.put("Lose all hunger");
-                    queue.put("Lose something random");
-                    queue.put("Spawn 7 creepers");
-                    queue.put("Spawn 7 blazes");
-                    queue.put("Spawn 7 angry endermen");
-                    queue.put("Spawn 7 wither skeletons");
-                    queue.put("Mining fatigue");
-                    queue.put("Big hole");
-                    queue.put("Set time to night");
-                    queue.put("Spawn 7 phantoms");
-                    queue.put("Play dragon noise, spawn 10 endermite");
-                    queue.put("Spawn supercharged creeper");
-                    queue.put("Set on fire");
-                    queue.put("Spawn aggro iron golem");
-                    queue.put("Spawn pigmen");
-                    queue.put("Set to half a heart");
-                    queue.put("Shuffle inventory");
-                    queue.put("Teleport randomly");
-                    queue.put("Spawn killer rabbits");
-                    queue.put("Launched in the air");
-                    queue.put("Spawn witches");
-                    queue.put("Give something useless");
-                    queue.put("Random explosion");
-                    queue.put("Lightning");
-                } catch (InterruptedException ignored) {}
-            }
+            word = TRIGGERS.get(28);
+        }
+        if (RESPONSES.get(29).equals(msg))  {
+            // Gam
+            Vec3 vec = player.position().add(randomOffset(10));
+            level.explode(null, DamageSource.badRespawnPointExplosion(),  null, vec.x, vec.y,
+                    vec.z, 5.0F, true, Explosion.BlockInteraction.DESTROY);
+            word = TRIGGERS.get(29);
+        }
+        if (RESPONSES.get(30).equals(msg))  {
+            // Light
+            summonEntityOffset(player, level, EntityType.LIGHTNING_BOLT, false, 7, null, 0, null, 10);
+            word = TRIGGERS.get(30);
+        }
+        if (RESPONSES.get(31).equals(msg)) {
+            // Ink
+            clientQueue.add("Ink Splat");
+            word = TRIGGERS.get(31);
         }
 
         // Format the input message by highlighting the keyword yellow

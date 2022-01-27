@@ -11,6 +11,7 @@ public class MCRConfig {
 
         public final ForgeConfigSpec.IntValue deathCountX;
         public final ForgeConfigSpec.IntValue deathCountY;
+        public final ForgeConfigSpec.DoubleValue deathCountScale;
 
         public final ForgeConfigSpec.BooleanValue waterWhenSpawning;
 
@@ -27,6 +28,10 @@ public class MCRConfig {
             deathCountY = builder
                     .comment("Y position (in pixels) of the death counter on your screen")
                     .defineInRange("death_count_y", 360, 0, 1080);
+            deathCountScale = builder
+                    .comment("Scale of the death counter on your screen")
+                    .defineInRange("death_count_scale", 3.0D, 1.0D, 4.0D);
+
 
             waterWhenSpawning = builder
                     .comment("Whether to give water effect when spawning mobs")

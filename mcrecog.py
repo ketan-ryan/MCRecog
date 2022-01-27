@@ -1,42 +1,19 @@
-import socket
 import speech_recognition
+
+import mc_socket
+from mc_socket import MCSocket
 import speech_recognition as sr
 
+
 """
-No shot: Lose 5 arrows
-Bear: Spawn 5 hostile polar bears
-Axolotl: Give pufferfish effects, spawn lots of fish
-Rot: Spawn 7 zombies
-Bone: Spawn 7 skeletons
-Pig: Drop hunger by 2
-Sub: Lose something random from your inventory
-Creep: Spawn 5 creepers
-Rod: Spawn 5 blazes
-End: Spawn 5 angry endermen
-Nether: Spawn 7 wither skeletons
-Follow: Create an 8 block hole under you
-Day: Set time to night
+https://github.com/ketan-ryan/MCRecog/wiki
 """
 
 r = sr.Recognizer()
 r.energy_threshold = 300
-
 mic = sr.Microphone()
 
-host = 'localhost'
-port = 7777
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client_socket.connect((host, port))
-
-
-def stream(in_list):
-    for element in in_list:
-        try:
-            client_socket.send((element + '\r\n').encode('utf-8'))
-
-        except Exception as e:
-            print(element)
-            raise e
+mc = MCSocket(7777)
 
 
 def get_response(response):
@@ -88,7 +65,7 @@ def get_response(response):
     if 'diamond' in response:
         ret.append("Set to half a heart")
     if 'mod' in response:
-        ret.append("Shuffle inventory")    # Shuffle inventory
+        ret.append("Shuffle inventory")  # Shuffle inventory
     if 'port' in response:
         ret.append("Teleport randomly")
     if 'water' in response:
@@ -107,10 +84,16 @@ def get_response(response):
         ret.append("Random explosion")
     if 'light' in response:
         ret.append("Lightning")
-    if 'poggers' in response:
-        ret.append("He said poggers")
+    if 'ink' in response:
+        ret.append("Ink Splat")
 
-    ret.append(res)
+    mc_socket.update(ret)
+
+    if 'showstats' in response:
+        for stat in mc_socket.get_stats():
+            ret.append(stat)
+    else:
+        ret.append(res)
     return ret
 
 
@@ -122,7 +105,7 @@ while 1:
             resp = r.recognize_google(audio)
             cmd = get_response(resp)
 
-            stream(cmd)
+            mc.stream(cmd)
 
     except speech_recognition.UnknownValueError:
         pass
