@@ -15,6 +15,8 @@ mic = sr.Microphone()
 
 mc = MCSocket(7777)
 
+filename = input('Enter the world to save stats for: ')
+
 
 def get_response(response):
     res = response
@@ -103,10 +105,10 @@ def get_response(response):
     if 'troll' in response:
         ret.append("Drop inventory")
 
-    mc_socket.update(ret)
+    mc_socket.update(filename, ret)
 
     if 'showstats' in response:
-        for stat in mc_socket.get_stats():
+        for stat in mc_socket.get_stats(filename):
             ret.append(stat)
     else:
         ret.append(res)

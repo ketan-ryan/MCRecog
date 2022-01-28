@@ -22,13 +22,15 @@ class MCSocket:
                 raise e
 
 
-def update(lst):
-    if not os.path.isfile('stats.json'):
-        with open('stats.json', 'w+') as fp:
+def update(filename, lst):
+    path = f'stats_{filename}.json'
+
+    if not os.path.isfile(path):
+        with open(path, 'w+') as fp:
             fp.write('{\n}')
 
     else:
-        with open('stats.json', 'r+') as fp:
+        with open(path, 'r+') as fp:
             data = json.load(fp)
 
             for key in lst:
@@ -42,9 +44,9 @@ def update(lst):
             fp.truncate()
 
 
-def get_stats():
+def get_stats(filename):
     ret = []
-    with open('stats.json', 'r') as fp:
+    with open(f'stats_{filename}.json', 'r') as fp:
         data = json.load(fp)
         for key in data:
             ret.append(f'STATS {key} TIMES {data[key]}')

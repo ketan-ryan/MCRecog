@@ -688,9 +688,9 @@ public class McRecog
             word = TRIGGERS.get(37);
         }
         if (RESPONSES.get(38).equals(msg)) {
-            // godlike
+            // godlike : Strength for half a minute
             if(this.beneficence <= 0) {
-                player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 1200, 0));
+                player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 600, 0));
                 clientQueue.add("Update beneficence 1200");
             }
             word = TRIGGERS.get(38);
