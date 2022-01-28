@@ -59,4 +59,26 @@ public class MCRGui extends Gui {
         minecraft.getProfiler().pop();
         inkStack.popPose();
     }
+
+    public static void renderBar(String profilerTag, String desiredData, int max, int yOff, float r, float g, float b) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if(minecraft.player.getPersistentData().getInt(desiredData) <= 0) return;
+
+        PoseStack barStack = new PoseStack();
+        barStack.pushPose();
+        barStack.scale(1.5F, 1.5F, 1.5F);
+        minecraft.getProfiler().push(profilerTag);
+        RenderSystem.setShaderColor(r, g, b, 1F);
+        RenderSystem.setShaderTexture(0, new ResourceLocation(McRecog.MODID, "textures/mcr_icons.png"));
+        float f = minecraft.player.getPersistentData().getInt(desiredData) / (float) max;
+        int j = (int) (f * 97.0F); // Where 97 is the width of the bar
+        int y = MCRConfig.COMMON.deathCountY.get() - yOff;
+        int x = MCRConfig.COMMON.deathCountX.get() - 87;
+        // PoseStack         Position on Screen   Tex x      Tex Y       bar width    Bar height   Tex width      Tex white
+        GuiComponent.blit(barStack, x, y, 0, 0, 97, 5, 256, 256);
+        if (j > 0) // If we have progress
+            GuiComponent.blit(barStack, x, y, 0, 5, j, 5, 256, 256);
+        minecraft.getProfiler().pop();
+        barStack.popPose();
+    }
 }

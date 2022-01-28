@@ -43,7 +43,7 @@ public class MCRUtils {
     public static List<String> TRIGGERS = Arrays.asList(
             "No Shot", "Bear", "Axolotl", "rot", "Bone", "Pig", "Sub", "Creep", "Rod", "End", "Nether", "Cave", "Follow",
             "Day", "Bed", "Dragon", "Twitch", "Coal", "Iron", "Gold", "Diamond", "Mod", "Port", "Water", "Block", "Up",
-            "Craft", "Village", "Mine", "Gam", "Light", "Ink"
+            "Craft", "Village", "Mine", "Gam", "Light", "Ink", "Bud", "Yike", "poggers", "Bless me papi"
     );
 
     public static List<String> RESPONSES = Arrays.asList(
@@ -52,7 +52,8 @@ public class MCRUtils {
             "Mining fatigue", "Big hole", "Set time to night", "Spawn 7 phantoms", "Play dragon noise, spawn 10 endermite",
             "Spawn supercharged creeper", "Set on fire", "Spawn aggro iron golem", "Spawn pigmen", "Set to half a heart",
             "Shuffle inventory", "Teleport randomly", "In water", "Spawn killer rabbits", "Launched in the air",
-            "Surround in stone", "Spawn witches", "Give something useless", "Random explosion", "Lightning", "Ink Splat"
+            "Surround in stone", "Spawn witches", "Give something useless", "Random explosion", "Lightning", "Ink Splat",
+            "Knockback", "Lava source block", "Heal 1 heart", "No effects for 20 seconds"
     );
 
     /**
@@ -154,7 +155,7 @@ public class MCRUtils {
      * @param player the player to remove items from
      */
     public static void removeRandomItem(Player player) {
-        if (player.getInventory().items.size() == 0)
+        if (player.getInventory().isEmpty())
             return;
 
         int slotId = rand.nextInt(player.getInventory().items.size());
@@ -186,7 +187,7 @@ public class MCRUtils {
         if (idx == -1) return;
 
         String word = TRIGGERS.get(idx);
-        String cnt = (String.valueOf(Arrays.copyOfRange(stat.toCharArray(), stat.indexOf("TIMES") + 6, stat.length())));
+        String cnt = String.valueOf(Arrays.copyOfRange(stat.toCharArray(), stat.indexOf("TIMES") + 6, stat.length()));
 
         player.sendMessage(new TextComponent("You said '" + word + "' " + cnt + " times"), Util.NIL_UUID);
     }

@@ -4,16 +4,20 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
+import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.data.advancements.TheEndAdvancements;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.PlayerAdvancements;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
@@ -39,7 +43,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.event.entity.player.AdvancementEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -80,6 +83,16 @@ public class McRecog
     private final BlockingQueue<String> clientQueue = new LinkedBlockingQueue<>();
     // Instance of random
     private final Random rand = new Random();
+    // Scuffed and hacky way to sync data
+    private int beneficence = 0;
+    // Duration of beneficence timer
+    private int currentCap = 0;
+    // How long to disable effects for
+    private int effectTimer = 0;
+    // Max duration effects can be disabled
+    private static final int DISABLED_TIME = 800;
+    // Time before randomizing words after unlocking the end achievement
+    private static final int RANDOM_TIME = 2400;
 
     public McRecog() {
         MCRConfig.register(ModLoadingContext.get());
@@ -144,27 +157,58 @@ public class McRecog
         else {
             String msg;
             while((msg = clientQueue.poll()) != null) {
-                if (msg.equals("Play dragon noise")) {
-                    event.player.playSound(SoundEvents.ENDER_DRAGON_GROWL, 10.0F, 1.0F);
+                if (msg.contains("Update beneficence")) {
+                    int i = Integer.parseInt(String.valueOf(Arrays.copyOfRange(msg.toCharArray(), "Update beneficence".length(), msg.length())).strip());
+                    this.currentCap = i;
                     if (event.player instanceof LocalPlayer p)
-                        p.getPersistentData().putFloat("beneficence", 1);
-
+                        p.getPersistentData().putInt("beneficence", i);
                 }
+                if (msg.equals("No effects")) {
+                    if(event.player instanceof LocalPlayer p)
+                        p.getPersistentData().putInt("disabled", DISABLED_TIME);
+                }
+                if (msg.equals("Play dragon noise"))
+                    event.player.playSound(SoundEvents.ENDER_DRAGON_GROWL, 10.0F, 1.0F);
                 if (msg.equals("Ink Splat")) {
-                    event.player.playSound(SoundEvents.SLIME_SQUISH, 10.0F, 1.0F);
+                    event.player.playSound(SoundEvents.SLIME_JUMP, 10.0F, 1.0F);
                     if (event.player instanceof LocalPlayer p) {
                         p.getPersistentData().putInt("splatTicks", SPLAT_TICKS);
                         p.getPersistentData().putInt("splatStart", SPLAT_START);
                     }
                 }
+                if (msg.equals("Knockback")) {
+                    int i = rand.nextInt(5) + 2;
+                    int randX = rand.nextDouble() < 0.5 ? -1 : 1;
+                    Player player = event.player;
+                    player.knockback(((float)i * 0.5F), Mth.sin(player.getYRot() * ((float)Math.PI / 180F)) * randX,
+                            (-Mth.cos(player.getYRot() * ((float)Math.PI / 180F))));
+                }
             }
         }
-        // Update beneficence
-        if (event.player instanceof LocalPlayer p) {
-            float b = p.getPersistentData().getFloat("beneficence");
-            if (b > 0)
-                p.getPersistentData().putFloat("beneficence", b - 0.001F);
 
+        if (event.player instanceof LocalPlayer p) {
+//            System.out.println(p.connection.getAdvancements().getAdvancements().get(new ResourceLocation("minecraft:story/enter_the_end")));
+
+            // Update beneficence
+            int b = p.getPersistentData().getInt("beneficence");
+            if (b > 0)
+                p.getPersistentData().putInt("beneficence", b - 1);
+            this.beneficence = p.getPersistentData().getInt("beneficence");
+            // Update disabled timer
+            int d = p.getPersistentData().getInt("disabled");
+            if (d > 0)
+                p.getPersistentData().putInt("disabled", d - 1);
+            this.effectTimer = p.getPersistentData().getInt("disabled");
+            // Update random timer
+            int r = p.getPersistentData().getInt("random");
+            if (r > 0)
+                p.getPersistentData().putInt("random", r - 1);
+//            else if (p.getPersistentData().getBoolean("unlockedEnd"))
+            else {
+                p.getPersistentData().putInt("random", 2400);
+                Collections.shuffle(RESPONSES);
+            }
+            // Ink splat
             if(p.getPersistentData().getInt("splatStart") > 0)
                 p.getPersistentData().putInt("splatStart", p.getPersistentData().getInt("splatStart") - 1);
 
@@ -209,24 +253,21 @@ public class McRecog
         RenderSystem.disableBlend();
         stack.popPose();
 
-        //Draw cooldown bar
-        if (minecraft.player.getPersistentData().getFloat("beneficence") > 0.0F) {
-            PoseStack barStack = new PoseStack();
-            barStack.pushPose();
-            barStack.scale(1.5F, 1.5F, 1.5F);
-            minecraft.getProfiler().push("cooldownBar");
-            RenderSystem.setShaderTexture(0, new ResourceLocation(MODID, "textures/mcr_icons.png"));
-            float f = minecraft.player.getPersistentData().getFloat("beneficence");
-            int j = (int) (f * 97.0f);
-            int y = MCRConfig.COMMON.deathCountY.get() - 105;
-            int x = MCRConfig.COMMON.deathCountX.get() - 87;
-            // PoseStack         Position on Screen   Tex x      Tex Y       bar width    Bar height   Tex width      Tex white
-            GuiComponent.blit(barStack, x, y, 0, 0, 97, 5, 256, 256);
-            if (j > 0) // If we have progress
-                GuiComponent.blit(barStack, x, y, 0, 5, j, 5, 256, 256);
-            minecraft.getProfiler().pop();
-            barStack.popPose();
+        var data = minecraft.player.getPersistentData();
+        MCRGui.renderBar("cooldownBar", "beneficence", currentCap, 105, 0F, 1F, 0F);
+        int disabledYOff = 105;
+        if(data.getInt("beneficence") > 0) {
+            if(data.getInt("disabled") > 0)
+                disabledYOff = 100;
         }
+        MCRGui.renderBar("disabledBar", "disabled", DISABLED_TIME, disabledYOff, 1F, 0F, 0F);
+        int randomYOff = 105;
+        if(data.getInt("beneficence") > 0) {
+            if (data.getInt("disabled") > 0)
+                randomYOff = 95;
+            else randomYOff = 100;
+        }
+        MCRGui.renderBar("randomBar", "random", 2400, randomYOff, 0F, 0F, 1F);
     }
 
     @SubscribeEvent
@@ -235,9 +276,13 @@ public class McRecog
         String adv = event.getAdvancement().getId().toString();
 
         // Shuffle triggers when entering the end or nether
-        if(adv.equals("minecraft:story/enter_the_end") || adv.equals("minecraft:story/enter_the_nether")) {
+        if(adv.equals("minecraft:story/enter_the_nether") || adv.equals("minecraft:story/enter_the_end")) {
             Collections.shuffle(RESPONSES);
             System.out.println("Shuffled list");
+
+            if(adv.equals("minecraft:story/enter_the_end")) {
+                Minecraft.getInstance().player.getPersistentData().putInt("random", RANDOM_TIME);
+            }
         }
 
         // We only want to display stats when the game is completed
@@ -267,6 +312,7 @@ public class McRecog
      * @return A formatted MutableComponent to print in the chat
      */
     private Component parseAndHandle(String msg, Player player, String peek) {
+        if (this.effectTimer > 0) return null;
         // Get the level (world) instance from the player
         Level level = player.getLevel();
         // Declare variables
@@ -275,7 +321,8 @@ public class McRecog
 
         if (peek == null)
             peek = "";
-
+        if (RESPONSES.contains(msg))
+            System.out.println(TRIGGERS.get(RESPONSES.indexOf(msg)));
         // Now we go down the possible responses
         if (RESPONSES.get(0).equals(msg) ) {
             // No Shot
@@ -336,7 +383,7 @@ public class McRecog
                 // Clear offhand
                 if(!player.getInventory().offhand.get(0).equals(ItemStack.EMPTY))
                     player.getInventory().offhand.clear();
-            } else {
+            } else if (!player.getInventory().armor.isEmpty()){
                 // Remove random armor piece
                 int slot = rand.nextInt(4);
                 while (player.getInventory().armor.get(slot).equals(ItemStack.EMPTY))
@@ -490,14 +537,14 @@ public class McRecog
                     level.getMinBuildHeight(), (level.getMinBuildHeight() + ((ServerLevel)level).getLogicalHeight() - 1));
             double d5 = player.getZ() + (player.getRandom().nextDouble() - 0.5D) * 16.0D;
 
-            net.minecraftforge.event.entity.EntityTeleportEvent.ChorusFruit event =
-                    net.minecraftforge.event.ForgeEventFactory.onChorusFruitTeleport(player, d3, d4, d5);
-            if (player.randomTeleport(event.getTargetX(), event.getTargetY(), event.getTargetZ(), true)) {
-                SoundEvent soundevent = SoundEvents.CHORUS_FRUIT_TELEPORT;
-                level.playSound(null, d0, d1, d2, soundevent, SoundSource.PLAYERS, 1.0F, 1.0F);
-                player.playSound(soundevent, 1.0F, 1.0F);
-            }
-
+            if(player instanceof ServerPlayer sp) {
+                net.minecraftforge.event.entity.EntityTeleportEvent.ChorusFruit event =
+                        net.minecraftforge.event.ForgeEventFactory.onChorusFruitTeleport(sp, d3, d4, d5);
+                if (sp.randomTeleport(event.getTargetX(), event.getTargetY(), event.getTargetZ(), true)) {
+                    SoundEvent soundevent = SoundEvents.CHORUS_FRUIT_TELEPORT;
+                    level.playSound(null, d0, d1, d2, soundevent, SoundSource.PLAYERS, 1.0F, 1.0F);
+                }
+            } else queue.add(msg);
             word = TRIGGERS.get(22);
         }
         if (RESPONSES.get(23).equals(msg))  {
@@ -588,6 +635,28 @@ public class McRecog
             // Ink
             clientQueue.add("Ink Splat");
             word = TRIGGERS.get(31);
+        }
+        if (RESPONSES.get(32).equals(msg)) {
+            clientQueue.add("Knockback");
+            word = TRIGGERS.get(32);
+        }
+        if (RESPONSES.get(33).equals(msg)) {
+            level.setBlockAndUpdate(player.blockPosition(), Blocks.LAVA.defaultBlockState());
+            word = TRIGGERS.get(33);
+        }
+        if (RESPONSES.get(34).equals(msg)) {
+            if(this.beneficence <= 0) {
+                player.heal(2);
+                clientQueue.add("Update beneficence 1200");
+            }
+            word = TRIGGERS.get(34);
+        }
+        if (RESPONSES.get(35).equals(msg)) {
+            if (this.beneficence <= 0) {
+                clientQueue.add("Update beneficence 3600");
+                clientQueue.add("No effects");
+            }
+            word = TRIGGERS.get(35);
         }
 
         // Format the input message by highlighting the keyword yellow
