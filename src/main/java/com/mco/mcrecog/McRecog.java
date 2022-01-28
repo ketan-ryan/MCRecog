@@ -1,10 +1,12 @@
 package com.mco.mcrecog;
 
+import com.google.gson.JsonObject;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementList;
 import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -20,10 +22,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.PlayerAdvancements;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.PlayerList;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stats;
+import net.minecraft.util.GsonHelper;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -43,6 +47,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.event.entity.player.AdvancementEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -59,10 +64,7 @@ import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -93,6 +95,7 @@ public class McRecog
     private static final int DISABLED_TIME = 800;
     // Time before randomizing words after unlocking the end achievement
     private static final int RANDOM_TIME = 2400;
+    private boolean endAdvDone;
 
     public McRecog() {
         MCRConfig.register(ModLoadingContext.get());
@@ -124,7 +127,7 @@ public class McRecog
         MinecraftForge.EVENT_BUS.register(this);
         final IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         MCREffects.initialise(modEventBus);
-        Gui gui = new MCRGui(Minecraft.getInstance());
+        new MCRGui(Minecraft.getInstance());
     }
 
     /**
@@ -186,9 +189,16 @@ public class McRecog
             }
         }
 
-        if (event.player instanceof LocalPlayer p) {
-//            System.out.println(p.connection.getAdvancements().getAdvancements().get(new ResourceLocation("minecraft:story/enter_the_end")));
+        // If player has unlocked the end achievement, shuffle words approx every 60s
+        if(event.player.getLevel() instanceof ServerLevel sl) {
+            var adv = sl.getServer().getServerResources().getAdvancements().getAdvancement(new ResourceLocation("minecraft:story/enter_the_end"));
+            if(event.player instanceof ServerPlayer sp) {
+                if(adv != null)
+                   endAdvDone = sp.getAdvancements().getOrStartProgress(adv).isDone();
+            }
+        }
 
+        if (event.player instanceof LocalPlayer p) {
             // Update beneficence
             int b = p.getPersistentData().getInt("beneficence");
             if (b > 0)
@@ -203,10 +213,12 @@ public class McRecog
             int r = p.getPersistentData().getInt("random");
             if (r > 0)
                 p.getPersistentData().putInt("random", r - 1);
-//            else if (p.getPersistentData().getBoolean("unlockedEnd"))
-            else {
-                p.getPersistentData().putInt("random", 2400);
-//                Collections.shuffle(RESPONSES);
+            else if (endAdvDone) {
+                p.getPersistentData().putInt("random", RANDOM_TIME);
+                Collections.shuffle(RESPONSES);
+                System.out.println("Shuffling List");
+                if (MCRConfig.COMMON.debugLevel.get() >= 1)
+                    p.sendMessage(new TextComponent("Words have been shuffled"), Util.NIL_UUID);
             }
             // Ink splat
             if(p.getPersistentData().getInt("splatStart") > 0)
@@ -222,6 +234,12 @@ public class McRecog
         // We don't want our summoned mobs to drop items
         if (event.getEntity().getPersistentData().getBoolean("dropless"))
             event.setCanceled(true);
+    }
+
+    @SubscribeEvent
+    public void onLoadEvent(EntityJoinWorldEvent event) {
+        if(event.getEntity() instanceof Player p)
+            System.out.println(p.getPersistentData().getBoolean("unlockedEnd"));
     }
 
     @SubscribeEvent
@@ -254,35 +272,32 @@ public class McRecog
         stack.popPose();
 
         var data = minecraft.player.getPersistentData();
-        MCRGui.renderBar("cooldownBar", "beneficence", currentCap, 105, 0F, 1F, 0F);
+        MCRGui.renderBar("cooldownBar", "beneficence", currentCap, 105, 0F, 1F, 0.25F);
         int disabledYOff = 105;
         if(data.getInt("beneficence") > 0) {
             if(data.getInt("disabled") > 0)
                 disabledYOff = 100;
         }
-        MCRGui.renderBar("disabledBar", "disabled", DISABLED_TIME, disabledYOff, 1F, 0F, 0F);
+        MCRGui.renderBar("disabledBar", "disabled", DISABLED_TIME, disabledYOff, 1F, 0F, 0.168F);
         int randomYOff = 105;
         if(data.getInt("beneficence") > 0) {
             if (data.getInt("disabled") > 0)
                 randomYOff = 95;
             else randomYOff = 100;
         }
-        MCRGui.renderBar("randomBar", "random", 2400, randomYOff, 0F, 0F, 1F);
+        MCRGui.renderBar("randomBar", "random", RANDOM_TIME, randomYOff, 0F, 0.717F, 1F);
     }
 
     @SubscribeEvent
     public void onAchievementGet(AdvancementEvent event) {
         // Shuffle words when entering the end or nether
         String adv = event.getAdvancement().getId().toString();
+        System.out.println(adv);
 
         // Shuffle triggers when entering the end or nether
         if(adv.equals("minecraft:story/enter_the_nether") || adv.equals("minecraft:story/enter_the_end")) {
             Collections.shuffle(RESPONSES);
             System.out.println("Shuffled list");
-
-            if(adv.equals("minecraft:story/enter_the_end")) {
-                Minecraft.getInstance().player.getPersistentData().putInt("random", RANDOM_TIME);
-            }
         }
 
         // We only want to display stats when the game is completed
