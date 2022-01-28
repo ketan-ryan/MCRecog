@@ -206,7 +206,7 @@ public class McRecog
 //            else if (p.getPersistentData().getBoolean("unlockedEnd"))
             else {
                 p.getPersistentData().putInt("random", 2400);
-                Collections.shuffle(RESPONSES);
+//                Collections.shuffle(RESPONSES);
             }
             // Ink splat
             if(p.getPersistentData().getInt("splatStart") > 0)
@@ -381,10 +381,17 @@ public class McRecog
             }
             else if(chances == 37) {
                 // Clear offhand
-                if(!player.getInventory().offhand.get(0).equals(ItemStack.EMPTY))
+                if(!player.getInventory().offhand.get(0).isEmpty())
                     player.getInventory().offhand.clear();
-            } else if (!player.getInventory().armor.isEmpty()){
+            } else {
                 // Remove random armor piece
+                boolean empty = true;
+                for(ItemStack stack : player.getInventory().armor) {
+                    if(!stack.isEmpty())
+                        empty = false;
+                }
+                if (empty) return null;
+
                 int slot = rand.nextInt(4);
                 while (player.getInventory().armor.get(slot).equals(ItemStack.EMPTY))
                     slot = rand.nextInt(4);

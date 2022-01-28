@@ -155,8 +155,12 @@ public class MCRUtils {
      * @param player the player to remove items from
      */
     public static void removeRandomItem(Player player) {
-        if (player.getInventory().isEmpty())
-            return;
+        boolean empty = true;
+        for(ItemStack stack : player.getInventory().items) {
+            if(!stack.isEmpty())
+                empty = false;
+        }
+        if (empty) return;
 
         int slotId = rand.nextInt(player.getInventory().items.size());
 
