@@ -1,40 +1,29 @@
 package com.mco.mcrecog;
 
-import com.google.gson.JsonObject;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
-import net.minecraft.advancements.Advancement;
-import net.minecraft.advancements.AdvancementList;
-import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.data.advancements.TheEndAdvancements;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.PlayerAdvancements;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.players.PlayerList;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stats;
-import net.minecraft.util.GsonHelper;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Rabbit;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -47,7 +36,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.event.entity.player.AdvancementEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -64,7 +52,10 @@ import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -95,6 +86,7 @@ public class McRecog
     private static final int DISABLED_TIME = 800;
     // Time before randomizing words after unlocking the end achievement
     private static final int RANDOM_TIME = 2400;
+    // Whether the player has unlocked the achievement for entering the end
     private boolean endAdvDone;
 
     public McRecog() {
@@ -128,6 +120,7 @@ public class McRecog
         final IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         MCREffects.initialise(modEventBus);
         new MCRGui(Minecraft.getInstance());
+        MCRSounds.SOUNDS.register(modEventBus);
     }
 
     /**
@@ -186,6 +179,11 @@ public class McRecog
                     player.knockback(((float)i * 0.5F), Mth.sin(player.getYRot() * ((float)Math.PI / 180F)) * randX,
                             (-Mth.cos(player.getYRot() * ((float)Math.PI / 180F))));
                 }
+                if(msg.equals("Tony time")) {
+                    event.player.playSound(MCRSounds.TONY.get(), 10.0F, 1.0F);
+                    if(event.player instanceof LocalPlayer p)
+                        p.getPersistentData().putInt("tony", 100);
+                }
             }
         }
 
@@ -220,6 +218,10 @@ public class McRecog
                 if (MCRConfig.COMMON.debugLevel.get() >= 1)
                     p.sendMessage(new TextComponent("Words have been shuffled"), Util.NIL_UUID);
             }
+            // Update tony timer
+            int t = p.getPersistentData().getInt("tony");
+            if (t > 0)
+                p.getPersistentData().putInt("tony", t - 1);
             // Ink splat
             if(p.getPersistentData().getInt("splatStart") > 0)
                 p.getPersistentData().putInt("splatStart", p.getPersistentData().getInt("splatStart") - 1);
@@ -326,13 +328,12 @@ public class McRecog
         String first, word, second;
         word = "";
 
-        for(String resp: RESPONSES)
-            System.out.println(resp);
-
         if (peek == null)
             peek = "";
-        if (RESPONSES.contains(msg))
-            System.out.println(TRIGGERS.get(RESPONSES.indexOf(msg)));
+
+        if(rand.nextInt(25) == 0)
+            clientQueue.add("Tony time");
+
         // Now we go down the possible responses
         if (RESPONSES.get(0).equals(msg) ) {
             // No Shot

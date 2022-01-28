@@ -3,6 +3,8 @@ package com.mco.mcrecog;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Quaternion;
+import com.mojang.math.Vector3f;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiComponent;
@@ -21,6 +23,11 @@ public class MCRGui extends Gui {
     public final IIngameOverlay INKSPLAT_ELEMENT = OverlayRegistry.registerOverlayTop("Inksplat", (gui, mStack, partialTicks, screenWidth, screenHeight) -> {
         gui.setupOverlayRenderState(true, false);
         this.renderInk(mStack);
+    });
+
+    public final IIngameOverlay TONY_ELEMENT = OverlayRegistry.registerOverlayTop("Tony", (gui, mStack, partialTicks, screenWidth, screenHeight) -> {
+        gui.setupOverlayRenderState(true, false);
+        this.drawTony(mStack);
     });
 
     private void renderInk(PoseStack inkStack) {
@@ -58,6 +65,46 @@ public class MCRGui extends Gui {
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         minecraft.getProfiler().pop();
         inkStack.popPose();
+    }
+
+    private void drawTony(PoseStack tonyStack) {
+
+        Minecraft minecraft = Minecraft.getInstance();
+        int ticks = minecraft.player.getPersistentData().getInt("tony");
+        if (ticks == 0) return;
+        tonyStack.pushPose();
+        final int screenWidth = minecraft.getWindow().getGuiScaledWidth();
+        final int screenHeight = minecraft.getWindow().getGuiScaledHeight();
+
+        float widthRatio = screenWidth / 232.0f;
+        float heightRatio = screenHeight / 320.0f;
+//        tonyStack.scale(widthRatio, heightRatio, 1.0f);
+        tonyStack.scale(.5F, .5F, 1F);
+//        tonyStack.translate(screenWidth - 120, heightRatio + 380, 0D);
+        tonyStack.translate(screenWidth, heightRatio + 480, 0D);
+        if (ticks > 40)
+            tonyStack.mulPose(Vector3f.ZP.rotationDegrees(ticks * 50));
+        else {
+            tonyStack.scale(2F, 2F, 1F);
+            tonyStack.translate(-125, -125, 0D);
+        }
+        minecraft.getProfiler().push("tony");
+        RenderSystem.enableBlend();
+        RenderSystem.disableDepthTest();
+        RenderSystem.depthMask(false);
+        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+        RenderSystem.setShader(GameRenderer::getPositionTexShader);
+
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+        RenderSystem.setShaderTexture(0, new ResourceLocation(McRecog.MODID, "textures/tony.png"));
+        GuiComponent.blit(tonyStack, 0, 0, 0, 0, 232, 320, 232, 320);
+
+        RenderSystem.depthMask(true);
+        RenderSystem.enableDepthTest();
+        RenderSystem.disableBlend();
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        minecraft.getProfiler().pop();
+        tonyStack.popPose();
     }
 
     public static void renderBar(String profilerTag, String desiredData, int max, int yOff, float r, float g, float b) {
