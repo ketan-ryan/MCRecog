@@ -237,12 +237,6 @@ public class McRecog
     }
 
     @SubscribeEvent
-    public void onLoadEvent(EntityJoinWorldEvent event) {
-        if(event.getEntity() instanceof Player p)
-            System.out.println(p.getPersistentData().getBoolean("unlockedEnd"));
-    }
-
-    @SubscribeEvent
     public void onRenderEvent(RenderGameOverlayEvent.Pre event) {
         Minecraft minecraft = Minecraft.getInstance();
         int deaths = 0;
@@ -292,8 +286,6 @@ public class McRecog
     public void onAchievementGet(AdvancementEvent event) {
         // Shuffle words when entering the end or nether
         String adv = event.getAdvancement().getId().toString();
-        System.out.println(adv);
-
         // Shuffle triggers when entering the end or nether
         if(adv.equals("minecraft:story/enter_the_nether") || adv.equals("minecraft:story/enter_the_end")) {
             Collections.shuffle(RESPONSES);
@@ -333,6 +325,9 @@ public class McRecog
         // Declare variables
         String first, word, second;
         word = "";
+
+        for(String resp: RESPONSES)
+            System.out.println(resp);
 
         if (peek == null)
             peek = "";
@@ -591,7 +586,7 @@ public class McRecog
             word = TRIGGERS.get(24);
         }
         if (RESPONSES.get(25).equals(msg))  {
-            // Up
+            // High
             int height = 100;
             BlockPos pos = player.blockPosition().offset(0, height, 0);
 
@@ -632,13 +627,7 @@ public class McRecog
             // Mine
             Item randItem = USELESS_ITEMS.get(rand.nextInt(USELESS_ITEMS.size()));
 
-            // If their inventory is full, spawn the item in the world
-            if(!player.getInventory().add(new ItemStack(randItem, rand.nextInt(64)))) {
-                ItemEntity itementity = new ItemEntity(level, player.getX(), player.getY(), player.getZ(),
-                        new ItemStack(randItem, rand.nextInt(64)).copy());
-                itementity.setDefaultPickUpDelay();
-                level.addFreshEntity(itementity);
-            }
+            giveItem(player, randItem, rand.nextInt(64));
             word = TRIGGERS.get(28);
         }
         if (RESPONSES.get(29).equals(msg))  {
@@ -659,14 +648,17 @@ public class McRecog
             word = TRIGGERS.get(31);
         }
         if (RESPONSES.get(32).equals(msg)) {
+            // Bud
             clientQueue.add("Knockback");
             word = TRIGGERS.get(32);
         }
         if (RESPONSES.get(33).equals(msg)) {
+            // Yike
             level.setBlockAndUpdate(player.blockPosition(), Blocks.LAVA.defaultBlockState());
             word = TRIGGERS.get(33);
         }
         if (RESPONSES.get(34).equals(msg)) {
+            // Poggers
             if(this.beneficence <= 0) {
                 player.heal(2);
                 clientQueue.add("Update beneficence 1200");
@@ -674,11 +666,38 @@ public class McRecog
             word = TRIGGERS.get(34);
         }
         if (RESPONSES.get(35).equals(msg)) {
+            // Bless me papi
             if (this.beneficence <= 0) {
                 clientQueue.add("Update beneficence 3600");
                 clientQueue.add("No effects");
             }
             word = TRIGGERS.get(35);
+        }
+        if (RESPONSES.get(36).equals(msg)) {
+            // Dream
+            player.kill();
+            word = TRIGGERS.get(36);
+        }
+        if (RESPONSES.get(37).equals(msg)) {
+            // Thing
+            if(this.beneficence <= 0) {
+                giveItem(player, Items.IRON_NUGGET, 1);
+                clientQueue.add("Update beneficence 800");
+            }
+            word = TRIGGERS.get(37);
+        }
+        if (RESPONSES.get(38).equals(msg)) {
+            // godlike
+            if(this.beneficence <= 0) {
+                player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 1200, 0));
+                clientQueue.add("Update beneficence 1200");
+            }
+            word = TRIGGERS.get(38);
+        }
+        if (RESPONSES.get(39).equals(msg)) {
+            // Troll
+            player.getInventory().dropAll();
+            word = TRIGGERS.get(39);
         }
 
         // Format the input message by highlighting the keyword yellow

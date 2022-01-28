@@ -13,6 +13,7 @@ import net.minecraft.stats.Stats;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -42,8 +43,9 @@ public class MCRUtils {
 
     public static List<String> TRIGGERS = Arrays.asList(
             "No Shot", "Bear", "Axolotl", "rot", "Bone", "Pig", "Sub", "Creep", "Rod", "End", "Nether", "Cave", "Follow",
-            "Day", "Bed", "Dragon", "Twitch", "Coal", "Iron", "Gold", "Diamond", "Mod", "Port", "Water", "Block", "Up",
-            "Craft", "Village", "Mine", "Gam", "Light", "Ink", "Bud", "Yike", "poggers", "Bless me papi"
+            "Day", "Bed", "Dragon", "Twitch", "Coal", "Iron", "Gold", "Diamond", "Mod", "Port", "Water", "Block", "high",
+            "Craft", "Village", "Mine", "Gam", "Light", "Ink", "Bud", "Yike", "poggers", "Bless me papi", "Dream", "Thing",
+            "godlike", "troll"
     );
 
     public static List<String> RESPONSES = Arrays.asList(
@@ -53,7 +55,8 @@ public class MCRUtils {
             "Spawn supercharged creeper", "Set on fire", "Spawn aggro iron golem", "Spawn pigmen", "Set to half a heart",
             "Shuffle inventory", "Teleport randomly", "In water", "Spawn killer rabbits", "Launched in the air",
             "Surround in stone", "Spawn witches", "Give something useless", "Random explosion", "Lightning", "Ink Splat",
-            "Knockback", "Lava source block", "Heal 1 heart", "No effects for 20 seconds"
+            "Knockback", "Lava source block", "Heal 1 heart", "No effects for 20 seconds", "Instant death", "Give iron nugget",
+            "Strength effect", "Drop inventory"
     );
 
     /**
@@ -194,5 +197,14 @@ public class MCRUtils {
         String cnt = String.valueOf(Arrays.copyOfRange(stat.toCharArray(), stat.indexOf("TIMES") + 6, stat.length()));
 
         player.sendMessage(new TextComponent("You said '" + word + "' " + cnt + " times"), Util.NIL_UUID);
+    }
+
+    public static void giveItem(Player player, Item item, int count) {
+        if(!player.getInventory().add(new ItemStack(item, count))) {
+            ItemEntity itementity = new ItemEntity(player.getLevel(), player.getX(), player.getY(), player.getZ(),
+                    new ItemStack(item, count).copy());
+            itementity.setDefaultPickUpDelay();
+            player.getLevel().addFreshEntity(itementity);
+        }
     }
 }
