@@ -72,7 +72,7 @@ def get_response(response):
         ret.append("In water")
     if 'block' in response:
         ret.append("Spawn killer rabbits")
-    if 'up' in response:
+    if 'high' in response:
         ret.append("Launched in the air")
     if 'craft' in response:
         ret.append("Surround in stone")
@@ -86,6 +86,22 @@ def get_response(response):
         ret.append("Lightning")
     if 'ink' in response:
         ret.append("Ink Splat")
+    if 'bud' in response:
+        ret.append("Knockback")
+    if 'yike' in response:
+        ret.append("Lava source block")
+    if 'poggers' in response:
+        ret.append("Heal 1 heart")
+    if 'blessmepapi' in response:
+        ret.append("No effects for 20 seconds")
+    if 'dream' in response:
+        ret.append("Instant death")
+    if 'thing' in response:
+        ret.append("Give iron nugget")
+    if 'godlike' in response:
+        ret.append("Strength effect")
+    if 'troll' in response:
+        ret.append("Drop inventory")
 
     mc_socket.update(ret)
 
