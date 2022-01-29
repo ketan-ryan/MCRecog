@@ -160,8 +160,12 @@ public class McRecog
                         p.getPersistentData().putInt("beneficence", i);
                 }
                 if (msg.equals("No effects")) {
-                    if(event.player instanceof LocalPlayer p)
+                    if(event.player instanceof LocalPlayer p) {
                         p.getPersistentData().putInt("disabled", DISABLED_TIME);
+                        p.sendMessage(new TextComponent("Effects Temporarily Disabled")
+                                .withStyle(ChatFormatting.DARK_RED)
+                                .withStyle(ChatFormatting.BOLD), Util.NIL_UUID);
+                    }
                 }
                 if (msg.equals("Play dragon noise"))
                     event.player.playSound(SoundEvents.ENDER_DRAGON_GROWL, 10.0F, 1.0F);
@@ -206,6 +210,11 @@ public class McRecog
             int d = p.getPersistentData().getInt("disabled");
             if (d > 0)
                 p.getPersistentData().putInt("disabled", d - 1);
+            if (d == 1) {
+                p.sendMessage(new TextComponent("Effects Reenabled")
+                        .withStyle(ChatFormatting.GREEN)
+                        .withStyle(ChatFormatting.BOLD), Util.NIL_UUID);
+            }
             this.effectTimer = p.getPersistentData().getInt("disabled");
             // Update random timer
             int r = p.getPersistentData().getInt("random");
@@ -215,8 +224,9 @@ public class McRecog
                 p.getPersistentData().putInt("random", RANDOM_TIME);
                 Collections.shuffle(RESPONSES);
                 System.out.println("Shuffling List");
-                if (MCRConfig.COMMON.debugLevel.get() >= 1)
-                    p.sendMessage(new TextComponent("Words have been shuffled"), Util.NIL_UUID);
+                p.sendMessage(new TextComponent("Words have been shuffled")
+                        .withStyle(ChatFormatting.BOLD)
+                        .withStyle(ChatFormatting.BLUE), Util.NIL_UUID);
             }
             // Update tony timer
             int t = p.getPersistentData().getInt("tony");
@@ -262,7 +272,7 @@ public class McRecog
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
 
-        //        stack, str,                  x,                      y,                color
+        //        stack, str,                  x,                      y,                color as a packed int
         font.drawShadow(stack, overlayMessageString, (float)(-l / 2), -20.0F, 16777215);
         RenderSystem.disableBlend();
         stack.popPose();
@@ -292,6 +302,9 @@ public class McRecog
         if(adv.equals("minecraft:story/enter_the_nether") || adv.equals("minecraft:story/enter_the_end")) {
             Collections.shuffle(RESPONSES);
             System.out.println("Shuffled list");
+            Minecraft.getInstance().player.sendMessage(new TextComponent("Shuffled Words")
+                    .withStyle(ChatFormatting.BLUE)
+                    .withStyle(ChatFormatting.BOLD), Util.NIL_UUID);
         }
 
         // We only want to display stats when the game is completed
