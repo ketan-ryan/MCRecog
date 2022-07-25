@@ -1,8 +1,10 @@
+from cgitb import text
 import speech_recognition
 
 import mc_socket
 from mc_socket import MCSocket
 import speech_recognition as sr
+from mcspeech import text_to_speech
 
 
 """
@@ -122,6 +124,7 @@ while 1:
             audio = r.listen(src)
             resp = r.recognize_google(audio)
             cmd = get_response(resp)
+            text_to_speech(cmd)
 
             mc.stream(cmd)
 
