@@ -35,21 +35,14 @@ public class MCRUtils {
     public static final int SPLAT_START = 100;
 
     public static List<String> TRIGGERS = Arrays.asList(
-            "No Shot", "Bear", "Axolotl", "rot", "Bone", "Pig", "Sub", "Creep", "Rod", "End", "Nether", "Cave", "Follow",
-            "Day", "Bed", "Dragon", "Twitch", "Coal", "Iron", "Gold", "Diamond", "Mod", "Port", "Water", "Block", "high",
-            "Craft", "Village", "Mine", "Gam", "Light", "Ink", "Bud", "Yike", "poggers", "Bless me papi", "Dream", "Thing",
-            "godlike", "troll"
+            "food", "gone", "hole", "mine", "lava", "night", "drop", "jump", "heart", "jail", "rot", "bone", "dead",
+            "end", "dragon", "boat"
     );
 
     public static List<String> RESPONSES = Arrays.asList(
-            "Lose 10 arrows", "Spawn 7 hostile polar bears", "Axolotl time", "Spawn 7 zombies", "Spawn 7 skeletons", "Lose all hunger",
-            "Lose something random", "Spawn 7 creepers", "Spawn 7 blazes", "Spawn 7 angry endermen", "Spawn 7 wither skeletons",
-            "Mining fatigue", "Big hole", "Set time to night", "Spawn 7 phantoms", "Play dragon noise, spawn 10 endermite",
-            "Spawn supercharged creeper", "Set on fire", "Spawn aggro iron golem", "Spawn pigmen", "Set to half a heart",
-            "Shuffle inventory", "Teleport randomly", "In water", "Spawn killer rabbits", "Launched in the air",
-            "Surround in stone", "Spawn witches", "Give something useless", "Random explosion", "Lightning", "Ink Splat",
-            "Knockback", "Lava source block", "Heal 1 heart", "No effects for 20 seconds", "Instant death", "Give iron nugget",
-            "Strength effect", "Drop inventory"
+            "Lose all hunger", "Lose something random", "Big hole", "Mining fatigue", "Lava source block", "Set time to night",
+            "Drop inventory", "Launched in the air", "Set to half a heart", "Surround in obsidian", "Spawn 10 zombies",
+            "Spawn 10 skeletons", "Instant death", "Spawn 10 angry endermen", "Spawn dragon", "Fill inventory with boats"
     );
 
     /**
@@ -158,13 +151,25 @@ public class MCRUtils {
         }
         if (empty) return;
 
-        int slotId = rand.nextInt(player.getInventory().items.size());
+        int iters = 0;
+        int slotId = rand.nextInt(9);
 
-        while(player.getInventory().getItem(slotId).equals(ItemStack.EMPTY))
-            slotId = rand.nextInt(player.getInventory().items.size());
+        while(player.getInventory().getItem(slotId).equals(ItemStack.EMPTY) && iters < 9) {
+            slotId = rand.nextInt(9);
+            System.out.println(slotId);
+            iters++;
+        }
+
+        if(player.getInventory().getItem(slotId).getItem().equals(Items.AIR)) {
+            for(int i = 0; i < 10; i++) {
+                slotId = i;
+                if(!player.getInventory().getItem(slotId).getItem().equals(Items.AIR))
+                    break;
+            }
+        }
 
         int slotCount = player.getInventory().getItem(slotId).getCount() + 1;
-        int c = rand.nextInt(slotCount + 1);
+        int c = rand.nextInt(slotCount) + 1;
 
         System.out.println("Removing " + c + " of item " + player.getInventory().getItem(slotId));
         player.getInventory().removeItem(slotId, c);

@@ -14,6 +14,7 @@ public class MCRConfig {
         public final ForgeConfigSpec.DoubleValue deathCountScale;
 
         public final ForgeConfigSpec.BooleanValue waterWhenSpawning;
+        public final ForgeConfigSpec.BooleanValue shuffleWords;
 
         Common(final ForgeConfigSpec.Builder builder) {
             builder.comment("Config settings").push("common");
@@ -36,6 +37,10 @@ public class MCRConfig {
             waterWhenSpawning = builder
                     .comment("Whether to give water effect when spawning mobs")
                     .define("water_spawns", true);
+
+            shuffleWords = builder
+                    .comment("Whether to shuffle words when entering new dimensions")
+                    .define("shuffle_words", false);
         }
     }
     private static final ForgeConfigSpec commonSpec;
