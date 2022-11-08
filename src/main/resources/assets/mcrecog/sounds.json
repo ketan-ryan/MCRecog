@@ -1,0 +1,10 @@
+{
+  "tony": {
+    "sounds": [
+      {
+        "name": "mcrecog:tony",
+        "stream": false
+      }
+    ]
+  }
+}
