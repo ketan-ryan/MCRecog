@@ -31,9 +31,9 @@ def get_response(response):
     if "axolotl" in response:
         ret.append("Axolotl time")
     if "rot" in response:
-        ret.append("Spawn 7 zombies")
+        ret.append("Spawn 10 zombies")
     if "bone" in response:
-        ret.append("Spawn 7 skeletons")
+        ret.append("Spawn 10 skeletons")
     if "pig" in response:
         ret.append("Lose all hunger")
     if "sub" in response:
@@ -43,7 +43,7 @@ def get_response(response):
     if "rod" in response:
         ret.append("Spawn 7 blazes")
     if "end" in response:
-        ret.append("Spawn 7 angry endermen")
+        ret.append("Spawn 10 angry endermen")
     if "nether" in response:
         ret.append("Spawn 7 wither skeletons")
     if "cave" in response:
@@ -67,7 +67,7 @@ def get_response(response):
     if 'diamond' in response:
         ret.append("Set to half a heart")
     if 'mod' in response:
-        ret.append("Shuffle inventory")  # Shuffle inventory
+        ret.append("Shuffle inventory")
     if 'port' in response:
         ret.append("Teleport randomly")
     if 'water' in response:
@@ -77,7 +77,7 @@ def get_response(response):
     if 'high' in response:
         ret.append("Launched in the air")
     if 'craft' in response:
-        ret.append("Surround in stone")
+        ret.append("Surround in obsidian")
     if 'village' in response:
         ret.append("Spawn witches")
     if 'mine' in response:
@@ -106,6 +106,7 @@ def get_response(response):
         ret.append("Drop inventory")
 
     mc_socket.update(filename, ret)
+    print(response, ret)
 
     if 'showstats' in response:
         for stat in mc_socket.get_stats(filename):
