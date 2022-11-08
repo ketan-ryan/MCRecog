@@ -1,21 +1,11 @@
 package com.mco.mcrecog;
 
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mco.mcrecog.network.ServerboundKeyUpdatePacket;
 import net.minecraft.ChatFormatting;
-import net.minecraft.Util;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextComponent;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.stats.Stats;
-import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
@@ -25,11 +15,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.client.event.InputEvent;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.living.LivingDropsEvent;
-import net.minecraftforge.event.entity.player.AdvancementEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -39,11 +25,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjgl.glfw.GLFW;
 
-import java.math.BigDecimal;
 import java.net.ServerSocket;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -107,9 +90,10 @@ public class McRecog
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
         final IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-        MCREffects.initialise(modEventBus);
-        new MCRGui(Minecraft.getInstance());
-        MCRSounds.SOUNDS.register(modEventBus);
+        modEventBus.addListener(ModSetup::init);
+//        MCREffects.initialise(modEventBus);
+//        new MCRGui(Minecraft.getInstance());
+//        MCRSounds.SOUNDS.register(modEventBus);
     }
 
     /**
@@ -117,7 +101,7 @@ public class McRecog
      * Retrieves a string from the blocking queue, parses it, and performs the corresponding action
      * @param event PlayerTickEvent
      */
-    @SubscribeEvent
+    /*@SubscribeEvent
     public void onTickEvent(TickEvent.PlayerTickEvent event) {
         // Almost all of our events need to take place on the server side
         if(!event.player.level.isClientSide()) {
@@ -313,15 +297,19 @@ public class McRecog
             player.sendMessage(new TextComponent("Hope you enjoyed!"), Util.NIL_UUID);
             player.sendMessage(new TextComponent("Mod made by HazeyGoldenAntlers aka TheMinecraftOverlord on YT"), Util.NIL_UUID);
         }
-    }
+    }*/
 
     @SubscribeEvent
     public void onKeyEvent(InputEvent.KeyInputEvent event) {
-        if (Minecraft.getInstance().getSingleplayerServer() == null) return;
+        if(event.getKey() == GLFW.GLFW_KEY_P) {
+            MCPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(1));
+        }
+        /*if (Minecraft.getInstance().getSingleplayerServer() == null) return;
         List<ServerPlayer> players = Minecraft.getInstance().getSingleplayerServer().getPlayerList().getPlayers();
         if (!(players.size() > 0 && players.get(0) != null)) return;
         if(event.getAction() != GLFW.GLFW_PRESS) return;
         ServerPlayer sp = players.get(0);
+
         switch (event.getKey()) {
             case GLFW.GLFW_KEY_X -> parseAndHandle(RESPONSES.get(0), sp, "");
             case GLFW.GLFW_KEY_R -> parseAndHandle(RESPONSES.get(1), sp, "");
@@ -342,7 +330,7 @@ public class McRecog
 
             default -> {
             }
-        }
+        }*/
     }
 
     /**
