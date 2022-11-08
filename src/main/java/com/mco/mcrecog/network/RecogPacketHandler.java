@@ -1,30 +1,28 @@
-package com.mco.mcrecog;
+package com.mco.mcrecog.network;
 
-import com.mco.mcrecog.network.ServerboundKeyUpdatePacket;
+import com.mco.mcrecog.MCRecog;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
 
-public final class MCPacketHandler {
-	private MCPacketHandler() {
-
-	}
+public class RecogPacketHandler {
+	private RecogPacketHandler() {}
 
 	private static final String PROTOCOL_VERSION = "1";
 
 	private static SimpleChannel INSTANCE;
 
 	public static void init() {
-		 SimpleChannel net = NetworkRegistry.newSimpleChannel(
-				 new ResourceLocation(McRecog.MODID, "main"),
-				 () -> PROTOCOL_VERSION,
-				 PROTOCOL_VERSION::equals,
-				 PROTOCOL_VERSION::equals);
-		 INSTANCE = net;
+		SimpleChannel net = NetworkRegistry.newSimpleChannel(
+				new ResourceLocation(MCRecog.MODID, "main"),
+				() -> PROTOCOL_VERSION,
+				PROTOCOL_VERSION::equals,
+				PROTOCOL_VERSION::equals);
+		INSTANCE = net;
 
-		 int index = 0;
+		int index = 0;
 
-		 // Client -> Server
+		// Client -> Server
 		INSTANCE.registerMessage(index++, ServerboundKeyUpdatePacket.class, ServerboundKeyUpdatePacket::encode,
 				ServerboundKeyUpdatePacket::new, ServerboundKeyUpdatePacket::handle);
 	}
