@@ -171,6 +171,19 @@ public class ServerboundKeyUpdatePacket {
 							sp.getInventory().add(new ItemStack(Items.OAK_BOAT));
 						success.set(true);
 					}
+					case 17 -> {
+						// No shot
+						int slot = sp.getInventory().findSlotMatchingItem(new ItemStack(Items.ARROW));
+						if(slot != -1) {
+							sp.getInventory().removeItem(slot, 10);
+						}
+						success.set(true);
+					}
+					case 18 -> {
+						// Bear
+						summonEntityOffset(sp, level, EntityType.POLAR_BEAR, true, 7, null, 0, null, 4);
+						success.set(true);
+					}
 					default -> {}
 				}
 			}

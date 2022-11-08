@@ -13,12 +13,11 @@ public class RecogPacketHandler {
 	private static SimpleChannel INSTANCE;
 
 	public static void init() {
-		SimpleChannel net = NetworkRegistry.newSimpleChannel(
+		INSTANCE = NetworkRegistry.newSimpleChannel(
 				new ResourceLocation(MCRecog.MODID, "main"),
 				() -> PROTOCOL_VERSION,
 				PROTOCOL_VERSION::equals,
 				PROTOCOL_VERSION::equals);
-		INSTANCE = net;
 
 		int index = 0;
 
