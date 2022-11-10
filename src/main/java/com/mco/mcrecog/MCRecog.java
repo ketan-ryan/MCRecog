@@ -2,10 +2,14 @@ package com.mco.mcrecog;
 
 import com.mco.mcrecog.network.RecogPacketHandler;
 import com.mco.mcrecog.network.ServerboundKeyUpdatePacket;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.InputEvent;
+import net.minecraftforge.common.ForgeMod;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
@@ -19,6 +23,7 @@ import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 
 import java.io.BufferedReader;
@@ -29,7 +34,7 @@ import java.net.Socket;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import static com.mco.mcrecog.RecogUtils.RESPONSES;
+import static com.mco.mcrecog.RecogUtils.*;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(MCRecog.MODID)
@@ -53,7 +58,7 @@ public class MCRecog
 
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
-
+        RecogEffects.initialise(modEventBus);
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, RecogConfig.GENERAL_SPEC);
@@ -97,6 +102,14 @@ public class MCRecog
     {
         // Do something when the server starts
         LOGGER.info("HELLO from server starting");
+    }
+
+    @SubscribeEvent
+    public void onKeyEvent(InputEvent.Key event) {
+        if(event.getAction() != InputConstants.PRESS) return;
+        if(event.getKey() == GLFW.GLFW_KEY_B) {
+            RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(18));
+        }
     }
 
     @SubscribeEvent

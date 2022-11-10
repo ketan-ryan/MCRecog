@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Random;
 
 public class RecogUtils {
+
 	/** Instance of Random */
 	public static final Random rand = new Random();
 	/** Array of random useless items to select from */

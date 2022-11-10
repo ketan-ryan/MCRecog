@@ -1,5 +1,7 @@
 package com.mco.mcrecog.network;
 
+import com.mco.mcrecog.RecogConfig;
+import com.mco.mcrecog.RecogEffects;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerLevel;
@@ -182,6 +184,8 @@ public class ServerboundKeyUpdatePacket {
 					case 18 -> {
 						// Bear
 						summonEntityOffset(sp, level, EntityType.POLAR_BEAR, true, 7, null, 0, null, 4);
+						if(RecogConfig.waterWhenSpawning.get() && sp.isInWater())
+							sp.addEffect(new MobEffectInstance(RecogEffects.GRAVITY.get(), 1200, 0));
 						success.set(true);
 					}
 					default -> {}
