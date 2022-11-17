@@ -2,20 +2,32 @@ package com.mco.mcrecog.network;
 
 import com.mco.mcrecog.RecogConfig;
 import com.mco.mcrecog.RecogEffects;
+import com.mco.mcrecog.capabilities.PlayerBeneficenceProvider;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.animal.Rabbit;
+import net.minecraft.world.entity.monster.Creeper;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.network.NetworkEvent;
 
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
@@ -39,33 +51,59 @@ public class ServerboundKeyUpdatePacket {
 	public boolean handle(Supplier<NetworkEvent.Context> ctx) {
 		final var success = new AtomicBoolean(false);
 		ctx.get().enqueueWork(() -> {
-			ServerPlayer sp = ctx.get().getSender();
-			if(sp != null && sp.isAlive()) {
-				ServerLevel level = sp.getLevel();
+			ServerPlayer player = ctx.get().getSender();
+			if(player != null && player.isAlive()) {
+				ServerLevel level = player.getLevel();
 				switch(this.action) {
 					case 0 -> {
 						BlockPos blockPos = ctx.get().getSender().blockPosition();
-						sp.level.explode(null, DamageSource.badRespawnPointExplosion(),
+						player.level.explode(null, DamageSource.badRespawnPointExplosion(),
 								null, (double) blockPos.getX() + 0.5D,
 								(double) blockPos.getY() + 0.5D,
 								(double) blockPos.getZ() + 0.5D, 5.0F, true, Explosion.BlockInteraction.DESTROY);
 
-						sp.kill();
+						player.kill();
 						success.set(true);
 					}
 					case 1 -> {
 						// Food
-						sp.getFoodData().setFoodLevel(sp.getFoodData().getFoodLevel() - 20);
+						player.getFoodData().setFoodLevel(player.getFoodData().getFoodLevel() - 20);
 						success.set(true);
 					}
 					case 2 -> {
 						// Remove something random
-						removeRandomItem(sp);
+						int chances = rand.nextInt(41);
+						if(chances < 36) {
+							// Remove random item from inventory
+							removeRandomItem(player);
+						}
+						else if(chances == 37) {
+							// Clear offhand
+							if(!player.getInventory().offhand.get(0).isEmpty())
+								player.getInventory().offhand.clear();
+						} else {
+							// Remove random armor piece
+							boolean empty = true;
+							for(ItemStack stack : player.getInventory().armor) {
+								if(!stack.isEmpty())
+									empty = false;
+							}
+							if (empty) {
+								success.set(true);
+								break;
+							}
+
+							int slot = rand.nextInt(4);
+							while (player.getInventory().armor.get(slot).equals(ItemStack.EMPTY))
+								slot = rand.nextInt(4);
+
+							player.getInventory().armor.get(slot).shrink(1);
+						}
 						success.set(true);
 					}
 					case 3 -> {
 						// Create hole
-						BlockPos pos = sp.blockPosition();
+						BlockPos pos = player.blockPosition();
 						for(int i = 1; i < 22; i++) {
 							clearIfNotBedrock(pos.north().offset(0, -i, 0), level);
 							clearIfNotBedrock(pos.west().offset(0, -i, 0), level);
@@ -83,12 +121,12 @@ public class ServerboundKeyUpdatePacket {
 					}
 					case 4 -> {
 						// Mining fatigue
-						sp.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 2400, 4));
+						player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 2400, 4));
 						success.set(true);
 					}
 					case 5 -> {
 						// Lava
-						level.setBlockAndUpdate(sp.blockPosition(), Blocks.LAVA.defaultBlockState());
+						level.setBlockAndUpdate(player.blockPosition(), Blocks.LAVA.defaultBlockState());
 						success.set(true);
 					}
 					case 6 -> {
@@ -98,31 +136,31 @@ public class ServerboundKeyUpdatePacket {
 					}
 					case 7 -> {
 						// Drop inventory
-						sp.getInventory().dropAll();
+						player.getInventory().dropAll();
 						success.set(true);
 					}
 					case 8 -> {
 						// Jump
 						int height = 100;
-						BlockPos pos = sp.blockPosition().offset(0, height, 0);
+						BlockPos pos = player.blockPosition().offset(0, height, 0);
 
 						if(!level.dimensionType().hasCeiling()) {
 							while (!level.getBlockState(pos).equals(Blocks.AIR.defaultBlockState())) {
 								height += 100;
-								pos = sp.blockPosition().offset(0, height, 0);
+								pos = player.blockPosition().offset(0, height, 0);
 							}
-							sp.moveTo(pos.getX(), pos.getY(), pos.getZ());
+							player.moveTo(pos.getX(), pos.getY(), pos.getZ());
 							success.set(true);
 						}
 					}
 					case 9 -> {
 						// Set to half a heart
-						sp.setHealth(1);
+						player.setHealth(1);
 						success.set(true);
 					}
 					case 10 -> {
 						// Jail
-						BlockPos pos = sp.blockPosition().below();
+						BlockPos pos = player.blockPosition().below();
 						for(int iter = 0; iter <= 1; iter++) {
 							for (int x = pos.getX() - 3; x <= pos.getX() + 3; x++) {
 								for (int z = pos.getZ() - 3; z <= pos.getZ() + 3; z++) {
@@ -139,53 +177,270 @@ public class ServerboundKeyUpdatePacket {
 					}
 					case 11 -> {
 						// Rot
-						summonEntityOffset(sp, level, EntityType.ZOMBIE, false, 10, null,
+						summonEntityOffset(player, level, EntityType.ZOMBIE, false, 10, null,
 								rand.nextInt(2),
 								new ItemStack[]{new ItemStack(Items.IRON_HELMET), new ItemStack(Items.IRON_SWORD)}, 2);
 						success.set(true);
 					}
 					case 12 -> {
 						// Bone
-						summonEntity(sp, level, EntityType.SKELETON, false, 10, null,
+						summonEntity(player, level, EntityType.SKELETON, false, 10, null,
 								rand.nextInt(2),
 								new ItemStack[]{new ItemStack(Items.IRON_HELMET), new ItemStack(Items.STONE_SWORD)});
 						success.set(true);
 					}
 					case 13 -> {
 						// Dead
-						sp.kill();
+						player.kill();
 						success.set(true);
 					}
 					case 14 -> {
 						// End
-						clearBlocksAbove(sp, level);
-						summonEntity(sp, level, EntityType.ENDERMAN, true, 10, null, 0, null);
+						clearBlocksAbove(player, level);
+						summonEntity(player, level, EntityType.ENDERMAN, true, 10, null, 0, null);
 						success.set(true);
 					}
 					case 15 -> {
 						// Dragon
-						summonEntity(sp, level, EntityType.ENDER_DRAGON, false, 1, null, 0, null);
+						summonEntity(player, level, EntityType.ENDER_DRAGON, false, 1, null, 0, null);
 						success.set(true);
 					}
 					case 16 -> {
 						// Boat
 						for(int i = 0; i < 100; i++)
-							sp.getInventory().add(new ItemStack(Items.OAK_BOAT));
+							player.getInventory().add(new ItemStack(Items.OAK_BOAT));
 						success.set(true);
 					}
 					case 17 -> {
 						// No shot
-						int slot = sp.getInventory().findSlotMatchingItem(new ItemStack(Items.ARROW));
+						int slot = player.getInventory().findSlotMatchingItem(new ItemStack(Items.ARROW));
 						if(slot != -1) {
-							sp.getInventory().removeItem(slot, 10);
+							player.getInventory().removeItem(slot, 10);
 						}
 						success.set(true);
 					}
 					case 18 -> {
 						// Bear
-						summonEntityOffset(sp, level, EntityType.POLAR_BEAR, true, 7, null, 0, null, 4);
-						if(RecogConfig.waterWhenSpawning.get() && sp.isInWater())
-							sp.addEffect(new MobEffectInstance(RecogEffects.GRAVITY.get(), 1200, 0));
+						summonEntityOffset(player, level, EntityType.POLAR_BEAR, true, 7, null, 0, null, 4);
+						if(RecogConfig.waterWhenSpawning.get() && player.isInWater())
+							player.addEffect(new MobEffectInstance(RecogEffects.GRAVITY.get(), 1200, 0));
+						success.set(true);
+					}
+					case 19 -> {
+						// Axolotl
+						player.addEffect(new MobEffectInstance(MobEffects.POISON, 1200, 1));
+						player.addEffect(new MobEffectInstance(MobEffects.HUNGER, 300, 1));
+						player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 300, 1));
+						summonEntity(player, level, EntityType.TROPICAL_FISH, false, 15, null, 0, null);
+
+						success.set(true);
+					}
+					case 20 -> {
+						// Creep
+						summonEntityOffset(player, level, EntityType.CREEPER, false, 7, null, 0, null, 2);
+						if(RecogConfig.waterWhenSpawning.get() && player.isInWater())
+							player.addEffect(new MobEffectInstance(RecogEffects.GRAVITY.get(), 1200, 0));
+
+						success.set(true);
+					}
+					case 21 -> {
+						// Rod
+						summonEntity(player, level, EntityType.BLAZE, false, 7, null, 0, null);
+						if(RecogConfig.waterWhenSpawning.get() && player.isInWater())
+							player.addEffect(new MobEffectInstance(RecogEffects.GRAVITY.get(), 1200, 0));
+
+						success.set(true);
+					}
+					case 22 -> {
+						// Nether
+						clearBlocksAbove(player, level);
+						summonEntity(player, level, EntityType.WITHER_SKELETON, false, 7, MobEffects.MOVEMENT_SPEED, 2,
+								new ItemStack[]{new ItemStack(Items.GOLDEN_SWORD)});
+
+						success.set(true);
+					}
+					case 23 -> {
+						// Bed
+						summonEntity(player, level, EntityType.PHANTOM, false, 7, MobEffects.DAMAGE_RESISTANCE,
+								2, null);
+
+						success.set(true);
+					}
+					case 24 -> {
+						// Twitch
+						Creeper creeper = EntityType.CREEPER.create(level);
+						if (creeper != null) {
+							CompoundTag tag = new CompoundTag();
+							tag.putBoolean("powered", true);
+							creeper.readAdditionalSaveData(tag);
+							creeper.setTarget(player);
+
+							creeper.getPersistentData().putBoolean("dropless", true);
+
+							creeper.setPos(player.position());
+							level.addFreshEntity(creeper);
+						}
+
+						success.set(true);
+					}
+					case 25 -> {
+						// Coal
+						player.setSecondsOnFire(100);
+						player.setRemainingFireTicks(1000);
+						player.setSharedFlagOnFire(true);
+
+						success.set(true);
+					}
+					case 27 -> {
+						// Iron
+						summonEntity(player, level, EntityType.IRON_GOLEM, true, 1, null, 0, null);
+
+						success.set(true);
+					}
+					case 28 -> {
+						// Gold
+						summonEntity(player, level, EntityType.PIGLIN_BRUTE, true, 7, null, 0,
+								new ItemStack[]{new ItemStack(Items.GOLDEN_SWORD),
+										new ItemStack(Items.GOLDEN_HELMET),
+										new ItemStack(Items.GOLDEN_CHESTPLATE)});
+
+						success.set(true);
+					}
+					case 29 -> {
+						// Mod
+						Collections.shuffle(player.getInventory().items);
+
+						success.set(true);
+					}
+					case 30 -> {
+						// Port
+						double d0 = player.getX();
+						double d1 = player.getY();
+						double d2 = player.getZ();
+
+						double d3 = player.getX() + (player.getRandom().nextDouble() - 0.5D) * 16.0D;
+						double d4 = Mth.clamp(player.getY() + (double)(player.getRandom().nextInt(16) - 8),
+								level.getMinBuildHeight(), (level.getMinBuildHeight() + ((ServerLevel)level).getLogicalHeight() - 1));
+						double d5 = player.getZ() + (player.getRandom().nextDouble() - 0.5D) * 16.0D;
+
+						net.minecraftforge.event.entity.EntityTeleportEvent.ChorusFruit event =
+								net.minecraftforge.event.ForgeEventFactory.onChorusFruitTeleport(player, d3, d4, d5);
+						if (player.randomTeleport(event.getTargetX(), event.getTargetY(), event.getTargetZ(), true)) {
+							// TODO: look at what side sounds play on
+							SoundEvent soundevent = SoundEvents.CHORUS_FRUIT_TELEPORT;
+							level.playSound(null, d0, d1, d2, soundevent, SoundSource.PLAYERS, 1.0F, 1.0F);
+						}
+
+						success.set(true);
+					}
+					case 31 -> {
+						// Water
+						player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, rand.nextInt(1200),
+								rand.nextInt(3)));
+						player.addEffect(new MobEffectInstance(RecogEffects.GRAVITY.get(), 1200, 0));
+
+						success.set(true);
+					}
+					case 32 -> {
+						// Block
+						for(int i = 0; i < 7; i++) {
+							Rabbit rabbit = EntityType.RABBIT.create(level);
+							if (rabbit != null) {
+								rabbit.setRabbitType(99);
+								rabbit.setPos(player.position().add(rand.nextInt(3), 1, rand.nextInt(3)));
+								rabbit.getPersistentData().putBoolean("dropless", true);
+								level.addFreshEntity(rabbit);
+							}
+						}
+
+						success.set(true);
+					}
+					case 33 -> {
+						summonEntity(player, level, EntityType.WITCH, false, 4, MobEffects.INVISIBILITY, 0, null);
+
+						success.set(true);
+					}
+					case 34 -> {
+						// Mine
+						Item randItem = USELESS_ITEMS.get(rand.nextInt(USELESS_ITEMS.size()));
+						giveItem(player, randItem, rand.nextInt(64));
+
+						success.set(true);
+					}
+					case 35 -> {
+						// Gam(e)
+						Vec3 vec = player.position().add(randomOffset(10));
+						level.explode(null, DamageSource.badRespawnPointExplosion(),  null, vec.x, vec.y,
+								vec.z, 5.0F, true, Explosion.BlockInteraction.DESTROY);
+
+						success.set(true);
+					}
+					case 36 -> {
+						// Light
+						summonEntityOffset(player, level, EntityType.LIGHTNING_BOLT, false, 7, null, 0, null, 10);
+
+						success.set(true);
+					}
+					case 37 -> {
+						// Ink
+						// TODO: Ink splat
+						System.out.println("Ink splat");
+						success.set(true);
+					}
+					case 38 -> {
+						// Bud
+						// TODO: Knockback
+						System.out.println("Knockback");
+
+						success.set(true);
+					}
+					case 39 -> {
+						// Poggers
+						player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(playerBeneficence -> {
+							if(playerBeneficence.getBeneficence() == 0) {
+								player.heal(2);
+								playerBeneficence.setMaxBeneficence(1200);
+								playerBeneficence.addBeneficence(1200);
+								RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(playerBeneficence.getBeneficence(), playerBeneficence.getMaxBeneficence()), player);
+							}
+						});
+						success.set(true);
+					}
+					case 40 -> {
+						// Bless me papi
+						// TODO: No effects
+						player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(beneficence -> {
+							if(beneficence.getBeneficence() == 0) {
+								System.out.println("No effects");
+								beneficence.setMaxBeneficence(3600);
+								beneficence.addBeneficence(3600);
+								RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(beneficence.getBeneficence(), beneficence.getMaxBeneficence()), player);
+							}
+						});
+						success.set(true);
+					}
+					case 41 -> {
+						// Thing
+						player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(beneficence -> {
+							if(beneficence.getBeneficence() == 0) {
+								giveItem(player, Items.IRON_NUGGET, 1);
+								beneficence.setMaxBeneficence(800);
+								beneficence.addBeneficence(800);
+								RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(beneficence.getBeneficence(), beneficence.getMaxBeneficence()), player);
+							}
+						});
+						success.set(true);
+					}
+					case 42 -> {
+						// Godlike
+						player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(beneficence -> {
+							if(beneficence.getBeneficence() == 0) {
+								player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 600, 0));
+								beneficence.setMaxBeneficence(1200);
+								beneficence.addBeneficence(1200);
+								RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(beneficence.getBeneficence(), beneficence.getMaxBeneficence()), player);
+							}
+						});
 						success.set(true);
 					}
 					default -> {}

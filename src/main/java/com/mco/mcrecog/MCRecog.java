@@ -1,17 +1,26 @@
 package com.mco.mcrecog;
 
+import com.mco.mcrecog.capabilities.PlayerBeneficenceProvider;
+import com.mco.mcrecog.client.RecogGui;
+import com.mco.mcrecog.network.BeneficenceDataSyncPacket;
 import com.mco.mcrecog.network.RecogPacketHandler;
 import com.mco.mcrecog.network.ServerboundKeyUpdatePacket;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.InputEvent;
-import net.minecraftforge.common.ForgeMod;
+import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -23,6 +32,7 @@ import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import org.apache.logging.log4j.core.jmx.Server;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 
@@ -34,7 +44,7 @@ import java.net.Socket;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import static com.mco.mcrecog.RecogUtils.*;
+import static com.mco.mcrecog.RecogUtils.RESPONSES;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(MCRecog.MODID)
@@ -96,6 +106,26 @@ public class MCRecog
         RecogPacketHandler.init();
     }
 
+    @SubscribeEvent
+    public void onAttachCapabilitiesEvent(AttachCapabilitiesEvent<Entity> event) {
+        if(event.getObject() instanceof Player) {
+            if(!event.getObject().getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).isPresent()) {
+                event.addCapability(new ResourceLocation(MODID, "properties"), new PlayerBeneficenceProvider());
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onPlayerCloned(PlayerEvent.Clone event) {
+        if(event.isWasDeath()) {
+            event.getOriginal().getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(oldStore -> {
+                event.getOriginal().getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(newStore -> {
+                    newStore.copyFrom(oldStore);
+                });
+            });
+        }
+    }
+
     // You can use SubscribeEvent and let the Event Bus discover methods to call
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event)
@@ -108,8 +138,30 @@ public class MCRecog
     public void onKeyEvent(InputEvent.Key event) {
         if(event.getAction() != InputConstants.PRESS) return;
         if(event.getKey() == GLFW.GLFW_KEY_B) {
-            RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(18));
+            RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(39));
         }
+    }
+
+    @SubscribeEvent
+    public void onPlayerJoinWorldEvent(EntityJoinLevelEvent event) {
+        if(!event.getLevel().isClientSide()) {
+            if (event.getEntity() instanceof ServerPlayer player) {
+                player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(playerBeneficence -> {
+                    RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(playerBeneficence.getBeneficence(), playerBeneficence.getMaxBeneficence()), player);
+                });
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onServerTickEvent(TickEvent.PlayerTickEvent event) {
+        if(event.side == LogicalSide.CLIENT) return;
+        ServerPlayer player = (ServerPlayer) event.player;
+
+        event.player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(playerBeneficence -> {
+            playerBeneficence.subBeneficence();
+            RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(playerBeneficence.getBeneficence(), playerBeneficence.getMaxBeneficence()), player);
+        });
     }
 
     @SubscribeEvent
@@ -119,7 +171,12 @@ public class MCRecog
         String msg;
         while ((msg = queue.poll()) != null) {
             event.player.sendSystemMessage(Component.literal(msg));
-            // Food
+
+            for(int i = 0; i < 41; i++) {
+                if(RESPONSES.get(i).equals(msg))
+                    RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(i + 1));
+            }
+            /*// Food
             if(RESPONSES.get(0).equals(msg)) {
                 RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(1));
             }
@@ -182,12 +239,12 @@ public class MCRecog
             // Boats
             if(RESPONSES.get(15).equals(msg)) {
                 RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(16));
-            }
+            }*/
         }
     }
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
-    @Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
+    @Mod.EventBusSubscriber(modid = MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
     public static class ClientModEvents
     {
         @SubscribeEvent
@@ -196,6 +253,11 @@ public class MCRecog
             // Some client setup code
             LOGGER.info("HELLO FROM CLIENT SETUP");
             LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
+        }
+
+        @SubscribeEvent
+        public static void registerGuiOverlays(RegisterGuiOverlaysEvent event) {
+            event.registerAboveAll("beneficence", RecogGui.HUD_BENEFICENCE);
         }
     }
 }

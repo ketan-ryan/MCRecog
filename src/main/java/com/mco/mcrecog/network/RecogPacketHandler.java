@@ -2,7 +2,10 @@ package com.mco.mcrecog.network;
 
 import com.mco.mcrecog.MCRecog;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
+import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public class RecogPacketHandler {
@@ -24,9 +27,15 @@ public class RecogPacketHandler {
 		// Client -> Server
 		INSTANCE.registerMessage(index++, ServerboundKeyUpdatePacket.class, ServerboundKeyUpdatePacket::encode,
 				ServerboundKeyUpdatePacket::new, ServerboundKeyUpdatePacket::handle);
+		INSTANCE.registerMessage(index++, BeneficenceDataSyncPacket.class, BeneficenceDataSyncPacket::toBytes,
+				BeneficenceDataSyncPacket::new, BeneficenceDataSyncPacket::handle);
 	}
 
 	public static <MSG> void sendToServer(MSG message) {
 		INSTANCE.sendToServer(message);
+	}
+
+	public static <MSG> void sendToClient(MSG message, ServerPlayer player) {
+		INSTANCE.sendTo(message, player.connection.getConnection(), NetworkDirection.PLAY_TO_CLIENT);
 	}
 }
