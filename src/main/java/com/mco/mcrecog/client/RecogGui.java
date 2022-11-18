@@ -1,14 +1,33 @@
 package com.mco.mcrecog.client;
 
 import com.mco.mcrecog.MCRecog;
+import com.mco.mcrecog.RecogConfig;
 import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.gui.overlay.IGuiOverlay;
 
+import java.math.BigDecimal;
+
 public class RecogGui {
 	private static final ResourceLocation BAR = new ResourceLocation(MCRecog.MODID, "textures/mcr_icons.png");
+
+	public static final IGuiOverlay HUD_DEATHS = ((gui, poseStack, partialTick, screenWidth, screenHeight) -> {
+		Font font = Minecraft.getInstance().font;
+		String overlayMessageString = "Deaths: " + ClientDeathData.getDeaths();
+
+		int x = 4 + RecogConfig.deathCountX.get();
+		int y = (screenHeight / 6) + RecogConfig.deathCountY.get();
+
+		poseStack.pushPose();
+		float scale = BigDecimal.valueOf(RecogConfig.deathCountScale.get()).floatValue();
+		poseStack.scale(scale, scale, 1.0F);
+		GuiComponent.drawString(poseStack, font, overlayMessageString, x, y, 16777215);
+		poseStack.popPose();
+	});
 
 	public static final IGuiOverlay HUD_BARS = ((gui, poseStack, partialTick, screenWidth, screenHeight) -> {
 		int x = (screenWidth / 2) - 92;

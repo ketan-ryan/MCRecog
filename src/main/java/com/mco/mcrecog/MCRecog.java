@@ -2,17 +2,17 @@ package com.mco.mcrecog;
 
 import com.mco.mcrecog.capabilities.beneficence.PlayerBeneficenceProvider;
 import com.mco.mcrecog.capabilities.disabled.PlayerWordsDisabledProvider;
+import com.mco.mcrecog.client.ClientDeathData;
 import com.mco.mcrecog.client.RecogGui;
-import com.mco.mcrecog.network.BeneficenceDataSyncPacket;
-import com.mco.mcrecog.network.RecogPacketHandler;
-import com.mco.mcrecog.network.ServerboundKeyUpdatePacket;
-import com.mco.mcrecog.network.WordsDisabledDataSyncPacket;
+import com.mco.mcrecog.network.*;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.stats.Stat;
+import net.minecraft.stats.Stats;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
@@ -179,6 +179,8 @@ public class MCRecog
             wordsDisabled.updateTime();
             RecogPacketHandler.sendToClient(new WordsDisabledDataSyncPacket(wordsDisabled.getDisabledTime()), player);
         });
+
+        RecogPacketHandler.sendToClient(new DeathDataSyncPacket(player.getStats().getValue(Stats.CUSTOM, Stats.DEATHS)), player);
     }
 
     @SubscribeEvent
@@ -285,6 +287,7 @@ public class MCRecog
         @SubscribeEvent
         public static void registerGuiOverlays(RegisterGuiOverlaysEvent event) {
             event.registerAboveAll("bars", RecogGui.HUD_BARS);
+            event.registerAboveAll("deaths", RecogGui.HUD_DEATHS);
         }
     }
 }

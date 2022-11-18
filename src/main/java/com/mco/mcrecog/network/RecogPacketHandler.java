@@ -27,10 +27,13 @@ public class RecogPacketHandler {
 		// Client -> Server
 		INSTANCE.registerMessage(index++, ServerboundKeyUpdatePacket.class, ServerboundKeyUpdatePacket::encode,
 				ServerboundKeyUpdatePacket::new, ServerboundKeyUpdatePacket::handle);
+		// Server -> Client
 		INSTANCE.registerMessage(index++, BeneficenceDataSyncPacket.class, BeneficenceDataSyncPacket::toBytes,
 				BeneficenceDataSyncPacket::new, BeneficenceDataSyncPacket::handle);
 		INSTANCE.registerMessage(index++, WordsDisabledDataSyncPacket.class, WordsDisabledDataSyncPacket::toBytes,
 				WordsDisabledDataSyncPacket::new, WordsDisabledDataSyncPacket::handle);
+		INSTANCE.registerMessage(index++, DeathDataSyncPacket.class, DeathDataSyncPacket::toBytes,
+				DeathDataSyncPacket::new, DeathDataSyncPacket::handle);
 	}
 
 	public static <MSG> void sendToServer(MSG message) {

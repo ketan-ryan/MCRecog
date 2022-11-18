@@ -30,13 +30,13 @@ public class RecogConfig {
 					.define("display_death", true);
 			deathCountX = builder
 					.comment("X position of the death counter on the screen")
-					.defineInRange("death_count_x", 960, 0, 1920);
+					.defineInRange("death_count_x", 0, -1920, 1920);
 			deathCountY = builder
 					.comment("Y position of the death counter on the screen")
-					.defineInRange("death_count_y", 360, 0, 1080);
+					.defineInRange("death_count_y", 0, -1080, 1080);
 			deathCountScale = builder
 					.comment("Scale of the death counter on the screen")
-					.defineInRange("death_count_scale", 3.0D, 1.0D, 4.0D);
+					.defineInRange("death_count_scale", 2.0D, 1.0D, 6.0D);
 		builder.pop();
 	}
 }
