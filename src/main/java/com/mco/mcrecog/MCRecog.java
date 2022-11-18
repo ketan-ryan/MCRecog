@@ -1,10 +1,12 @@
 package com.mco.mcrecog;
 
-import com.mco.mcrecog.capabilities.PlayerBeneficenceProvider;
+import com.mco.mcrecog.capabilities.beneficence.PlayerBeneficenceProvider;
+import com.mco.mcrecog.capabilities.disabled.PlayerWordsDisabledProvider;
 import com.mco.mcrecog.client.RecogGui;
 import com.mco.mcrecog.network.BeneficenceDataSyncPacket;
 import com.mco.mcrecog.network.RecogPacketHandler;
 import com.mco.mcrecog.network.ServerboundKeyUpdatePacket;
+import com.mco.mcrecog.network.WordsDisabledDataSyncPacket;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
@@ -32,7 +34,6 @@ import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import org.apache.logging.log4j.core.jmx.Server;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 
@@ -110,7 +111,10 @@ public class MCRecog
     public void onAttachCapabilitiesEvent(AttachCapabilitiesEvent<Entity> event) {
         if(event.getObject() instanceof Player) {
             if(!event.getObject().getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).isPresent()) {
-                event.addCapability(new ResourceLocation(MODID, "properties"), new PlayerBeneficenceProvider());
+                event.addCapability(new ResourceLocation(MODID, "beneficence"), new PlayerBeneficenceProvider());
+            }
+            if(!event.getObject().getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).isPresent()) {
+                event.addCapability(new ResourceLocation(MODID, "disabled"), new PlayerWordsDisabledProvider());
             }
         }
     }
@@ -123,6 +127,25 @@ public class MCRecog
                     newStore.copyFrom(oldStore);
                 });
             });
+            event.getOriginal().getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).ifPresent(oldStore -> {
+                event.getOriginal().getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).ifPresent(newStore -> {
+                    newStore.copyFrom(oldStore);
+                });
+            });
+        }
+    }
+
+    @SubscribeEvent
+    public void onPlayerJoinWorldEvent(EntityJoinLevelEvent event) {
+        if(!event.getLevel().isClientSide()) {
+            if (event.getEntity() instanceof ServerPlayer player) {
+                player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(playerBeneficence -> {
+                    RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(playerBeneficence.getBeneficence(), playerBeneficence.getMaxBeneficence()), player);
+                });
+                player.getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).ifPresent(wordsDisabled -> {
+                    RecogPacketHandler.sendToClient(new WordsDisabledDataSyncPacket(wordsDisabled.getDisabledTime()), player);
+                });
+            }
         }
     }
 
@@ -138,18 +161,7 @@ public class MCRecog
     public void onKeyEvent(InputEvent.Key event) {
         if(event.getAction() != InputConstants.PRESS) return;
         if(event.getKey() == GLFW.GLFW_KEY_B) {
-            RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(39));
-        }
-    }
-
-    @SubscribeEvent
-    public void onPlayerJoinWorldEvent(EntityJoinLevelEvent event) {
-        if(!event.getLevel().isClientSide()) {
-            if (event.getEntity() instanceof ServerPlayer player) {
-                player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(playerBeneficence -> {
-                    RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(playerBeneficence.getBeneficence(), playerBeneficence.getMaxBeneficence()), player);
-                });
-            }
+            RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(40));
         }
     }
 
@@ -162,6 +174,11 @@ public class MCRecog
             playerBeneficence.subBeneficence();
             RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(playerBeneficence.getBeneficence(), playerBeneficence.getMaxBeneficence()), player);
         });
+
+        event.player.getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).ifPresent(wordsDisabled -> {
+            wordsDisabled.updateTime();
+            RecogPacketHandler.sendToClient(new WordsDisabledDataSyncPacket(wordsDisabled.getDisabledTime()), player);
+        });
     }
 
     @SubscribeEvent
@@ -172,8 +189,18 @@ public class MCRecog
         while ((msg = queue.poll()) != null) {
             event.player.sendSystemMessage(Component.literal(msg));
 
-            for(int i = 0; i < 41; i++) {
-                if(RESPONSES.get(i).equals(msg))
+            var wrapper = new Object(){ boolean disabled = false; };
+
+            event.player.getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).ifPresent(wordsDisabled -> {
+                if(wordsDisabled.getDisabledTime() > 0) {
+                    wrapper.disabled = true;
+                }
+            });
+
+            if(wrapper.disabled) return;
+
+            for (int i = 0; i < 41; i++) {
+                if (RESPONSES.get(i).equals(msg))
                     RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(i + 1));
             }
             /*// Food
@@ -257,7 +284,7 @@ public class MCRecog
 
         @SubscribeEvent
         public static void registerGuiOverlays(RegisterGuiOverlaysEvent event) {
-            event.registerAboveAll("beneficence", RecogGui.HUD_BENEFICENCE);
+            event.registerAboveAll("bars", RecogGui.HUD_BARS);
         }
     }
 }

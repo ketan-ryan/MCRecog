@@ -2,11 +2,11 @@ package com.mco.mcrecog.network;
 
 import com.mco.mcrecog.RecogConfig;
 import com.mco.mcrecog.RecogEffects;
-import com.mco.mcrecog.capabilities.PlayerBeneficenceProvider;
+import com.mco.mcrecog.capabilities.beneficence.PlayerBeneficenceProvider;
+import com.mco.mcrecog.capabilities.disabled.PlayerWordsDisabledProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
@@ -408,13 +408,18 @@ public class ServerboundKeyUpdatePacket {
 					}
 					case 40 -> {
 						// Bless me papi
-						// TODO: No effects
 						player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(beneficence -> {
 							if(beneficence.getBeneficence() == 0) {
-								System.out.println("No effects");
-								beneficence.setMaxBeneficence(3600);
-								beneficence.addBeneficence(3600);
-								RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(beneficence.getBeneficence(), beneficence.getMaxBeneficence()), player);
+								player.getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).ifPresent(wordsDisabled -> {
+									if(wordsDisabled.getDisabledTime() == 0) {
+										wordsDisabled.setDisabled();
+										RecogPacketHandler.sendToClient(new WordsDisabledDataSyncPacket(wordsDisabled.getDisabledTime()), player);
+
+										beneficence.setMaxBeneficence(3600);
+										beneficence.addBeneficence(3600);
+										RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(beneficence.getBeneficence(), beneficence.getMaxBeneficence()), player);
+									}
+								});
 							}
 						});
 						success.set(true);

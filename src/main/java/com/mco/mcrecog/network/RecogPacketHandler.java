@@ -29,6 +29,8 @@ public class RecogPacketHandler {
 				ServerboundKeyUpdatePacket::new, ServerboundKeyUpdatePacket::handle);
 		INSTANCE.registerMessage(index++, BeneficenceDataSyncPacket.class, BeneficenceDataSyncPacket::toBytes,
 				BeneficenceDataSyncPacket::new, BeneficenceDataSyncPacket::handle);
+		INSTANCE.registerMessage(index++, WordsDisabledDataSyncPacket.class, WordsDisabledDataSyncPacket::toBytes,
+				WordsDisabledDataSyncPacket::new, WordsDisabledDataSyncPacket::handle);
 	}
 
 	public static <MSG> void sendToServer(MSG message) {
