@@ -24,6 +24,8 @@ def get_response(response):
     print(response)
 
     ret = []
+    if "crow" in response:
+        ret.append("Explode and die")
     if "noshot" in response:
         ret.append("Lose 10 arrows")
     if "bear" in response:
@@ -54,6 +56,8 @@ def get_response(response):
         ret.append("Set time to night")
     if 'bed' in response:
         ret.append("Spawn 7 phantoms")
+    if 'boat' in response:
+        ret.append("Fill inventory with boats")
     if 'dragon' in response:
         ret.append("Play dragon noise, spawn 10 endermite")
     if 'twitch' in response:

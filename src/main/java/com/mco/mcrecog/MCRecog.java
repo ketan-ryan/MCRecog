@@ -2,7 +2,8 @@ package com.mco.mcrecog;
 
 import com.mco.mcrecog.capabilities.beneficence.PlayerBeneficenceProvider;
 import com.mco.mcrecog.capabilities.disabled.PlayerWordsDisabledProvider;
-import com.mco.mcrecog.client.ClientDeathData;
+import com.mco.mcrecog.capabilities.ink.PlayerInkProvider;
+import com.mco.mcrecog.client.ClientWordsDisabledData;
 import com.mco.mcrecog.client.RecogGui;
 import com.mco.mcrecog.network.*;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -11,7 +12,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.stats.Stat;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -116,6 +119,9 @@ public class MCRecog
             if(!event.getObject().getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).isPresent()) {
                 event.addCapability(new ResourceLocation(MODID, "disabled"), new PlayerWordsDisabledProvider());
             }
+            if(!event.getObject().getCapability(PlayerInkProvider.PLAYER_INK_SPLAT).isPresent()) {
+                event.addCapability(new ResourceLocation(MODID, "splat"), new PlayerInkProvider());
+            }
         }
     }
 
@@ -132,6 +138,11 @@ public class MCRecog
                     newStore.copyFrom(oldStore);
                 });
             });
+            event.getOriginal().getCapability(PlayerInkProvider.PLAYER_INK_SPLAT).ifPresent(oldStore -> {
+                event.getOriginal().getCapability(PlayerInkProvider.PLAYER_INK_SPLAT).ifPresent(newStore -> {
+                    newStore.copyFrom(oldStore);
+                });
+            });
         }
     }
 
@@ -144,6 +155,9 @@ public class MCRecog
                 });
                 player.getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).ifPresent(wordsDisabled -> {
                     RecogPacketHandler.sendToClient(new WordsDisabledDataSyncPacket(wordsDisabled.getDisabledTime()), player);
+                });
+                player.getCapability(PlayerInkProvider.PLAYER_INK_SPLAT).ifPresent(inkSplat -> {
+                    RecogPacketHandler.sendToClient(new InkDataSyncPacket(inkSplat.getSplatTicks()), player);
                 });
             }
         }
@@ -161,7 +175,7 @@ public class MCRecog
     public void onKeyEvent(InputEvent.Key event) {
         if(event.getAction() != InputConstants.PRESS) return;
         if(event.getKey() == GLFW.GLFW_KEY_B) {
-            RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(40));
+            RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(37));
         }
     }
 
@@ -180,6 +194,11 @@ public class MCRecog
             RecogPacketHandler.sendToClient(new WordsDisabledDataSyncPacket(wordsDisabled.getDisabledTime()), player);
         });
 
+        event.player.getCapability(PlayerInkProvider.PLAYER_INK_SPLAT).ifPresent(inkSplat -> {
+            inkSplat.updateSplat();
+            RecogPacketHandler.sendToClient(new InkDataSyncPacket(inkSplat.getSplatTicks()), player);
+        });
+
         RecogPacketHandler.sendToClient(new DeathDataSyncPacket(player.getStats().getValue(Stats.CUSTOM, Stats.DEATHS)), player);
     }
 
@@ -187,23 +206,32 @@ public class MCRecog
     public void onTickEvent(TickEvent.PlayerTickEvent event) {
         if(event.side == LogicalSide.SERVER) return;
 
+        if(ClientWordsDisabledData.getWordsDisabledTime() > 0) return;
+
         String msg;
         while ((msg = queue.poll()) != null) {
             event.player.sendSystemMessage(Component.literal(msg));
 
-            var wrapper = new Object(){ boolean disabled = false; };
+            for (int i = 0; i < 42; i++) {
+                if (RESPONSES.get(i).equals(msg)) {
+                    RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(i));
 
-            event.player.getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).ifPresent(wordsDisabled -> {
-                if(wordsDisabled.getDisabledTime() > 0) {
-                    wrapper.disabled = true;
+                    SoundEvent soundEvent = null;
+                    float volume = 1.0F;
+                    if (i == 15) {
+                        soundEvent = SoundEvents.ENDER_DRAGON_GROWL;
+                    }
+                    else if (i == 29) {
+                        soundEvent = SoundEvents.CHORUS_FRUIT_TELEPORT;
+                    }
+                    else if (i == 36) {
+                        soundEvent = SoundEvents.SLIME_SQUISH;
+                        volume = 10.0F;
+                    }
+                    if(soundEvent != null) {
+                        event.player.level.playLocalSound(event.player.position().x, event.player.position().y, event.player.position().z, soundEvent, SoundSource.MASTER, volume, 1.0F, false);
+                    }
                 }
-            });
-
-            if(wrapper.disabled) return;
-
-            for (int i = 0; i < 41; i++) {
-                if (RESPONSES.get(i).equals(msg))
-                    RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(i + 1));
             }
             /*// Food
             if(RESPONSES.get(0).equals(msg)) {
@@ -288,6 +316,7 @@ public class MCRecog
         public static void registerGuiOverlays(RegisterGuiOverlaysEvent event) {
             event.registerAboveAll("bars", RecogGui.HUD_BARS);
             event.registerAboveAll("deaths", RecogGui.HUD_DEATHS);
+            event.registerAboveAll("ink", RecogGui.HUD_INK);
         }
     }
 }

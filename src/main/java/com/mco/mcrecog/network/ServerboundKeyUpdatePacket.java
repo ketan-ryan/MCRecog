@@ -4,6 +4,7 @@ import com.mco.mcrecog.RecogConfig;
 import com.mco.mcrecog.RecogEffects;
 import com.mco.mcrecog.capabilities.beneficence.PlayerBeneficenceProvider;
 import com.mco.mcrecog.capabilities.disabled.PlayerWordsDisabledProvider;
+import com.mco.mcrecog.capabilities.ink.PlayerInkProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
@@ -202,7 +203,7 @@ public class ServerboundKeyUpdatePacket {
 					}
 					case 15 -> {
 						// Dragon
-						summonEntity(player, level, EntityType.ENDER_DRAGON, false, 1, null, 0, null);
+						summonEntity(player, level, EntityType.ENDERMITE, true, 10, null, 0, null);
 						success.set(true);
 					}
 					case 16 -> {
@@ -291,13 +292,13 @@ public class ServerboundKeyUpdatePacket {
 
 						success.set(true);
 					}
-					case 27 -> {
+					case 26 -> {
 						// Iron
 						summonEntity(player, level, EntityType.IRON_GOLEM, true, 1, null, 0, null);
 
 						success.set(true);
 					}
-					case 28 -> {
+					case 27 -> {
 						// Gold
 						summonEntity(player, level, EntityType.PIGLIN_BRUTE, true, 7, null, 0,
 								new ItemStack[]{new ItemStack(Items.GOLDEN_SWORD),
@@ -306,18 +307,15 @@ public class ServerboundKeyUpdatePacket {
 
 						success.set(true);
 					}
-					case 29 -> {
+					case 28 -> {
 						// Mod
 						Collections.shuffle(player.getInventory().items);
 
 						success.set(true);
 					}
-					case 30 -> {
+					case 29 -> {
 						// Port
-						double d0 = player.getX();
-						double d1 = player.getY();
-						double d2 = player.getZ();
-
+						// TODO: Fix
 						double d3 = player.getX() + (player.getRandom().nextDouble() - 0.5D) * 16.0D;
 						double d4 = Mth.clamp(player.getY() + (double)(player.getRandom().nextInt(16) - 8),
 								level.getMinBuildHeight(), (level.getMinBuildHeight() + ((ServerLevel)level).getLogicalHeight() - 1));
@@ -326,14 +324,11 @@ public class ServerboundKeyUpdatePacket {
 						net.minecraftforge.event.entity.EntityTeleportEvent.ChorusFruit event =
 								net.minecraftforge.event.ForgeEventFactory.onChorusFruitTeleport(player, d3, d4, d5);
 						if (player.randomTeleport(event.getTargetX(), event.getTargetY(), event.getTargetZ(), true)) {
-							// TODO: look at what side sounds play on
-							SoundEvent soundevent = SoundEvents.CHORUS_FRUIT_TELEPORT;
-							level.playSound(null, d0, d1, d2, soundevent, SoundSource.PLAYERS, 1.0F, 1.0F);
 						}
 
 						success.set(true);
 					}
-					case 31 -> {
+					case 30 -> {
 						// Water
 						player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, rand.nextInt(1200),
 								rand.nextInt(3)));
@@ -341,7 +336,7 @@ public class ServerboundKeyUpdatePacket {
 
 						success.set(true);
 					}
-					case 32 -> {
+					case 31 -> {
 						// Block
 						for(int i = 0; i < 7; i++) {
 							Rabbit rabbit = EntityType.RABBIT.create(level);
@@ -355,19 +350,20 @@ public class ServerboundKeyUpdatePacket {
 
 						success.set(true);
 					}
-					case 33 -> {
+					case 32 -> {
 						summonEntity(player, level, EntityType.WITCH, false, 4, MobEffects.INVISIBILITY, 0, null);
 
 						success.set(true);
 					}
-					case 34 -> {
+					case 33 -> {
 						// Mine
+						// TODO: Check
 						Item randItem = USELESS_ITEMS.get(rand.nextInt(USELESS_ITEMS.size()));
 						giveItem(player, randItem, rand.nextInt(64));
 
 						success.set(true);
 					}
-					case 35 -> {
+					case 34 -> {
 						// Gam(e)
 						Vec3 vec = player.position().add(randomOffset(10));
 						level.explode(null, DamageSource.badRespawnPointExplosion(),  null, vec.x, vec.y,
@@ -375,26 +371,28 @@ public class ServerboundKeyUpdatePacket {
 
 						success.set(true);
 					}
-					case 36 -> {
+					case 35 -> {
 						// Light
 						summonEntityOffset(player, level, EntityType.LIGHTNING_BOLT, false, 7, null, 0, null, 10);
 
 						success.set(true);
 					}
-					case 37 -> {
+					case 36 -> {
 						// Ink
-						// TODO: Ink splat
-						System.out.println("Ink splat");
+						player.getCapability(PlayerInkProvider.PLAYER_INK_SPLAT).ifPresent(inkSplat -> {
+							inkSplat.startSplat();
+							RecogPacketHandler.sendToClient(new InkDataSyncPacket(inkSplat.getSplatTicks()), player);
+						});
 						success.set(true);
 					}
-					case 38 -> {
+					case 37 -> {
 						// Bud
 						// TODO: Knockback
 						System.out.println("Knockback");
 
 						success.set(true);
 					}
-					case 39 -> {
+					case 38 -> {
 						// Poggers
 						player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(playerBeneficence -> {
 							if(playerBeneficence.getBeneficence() == 0) {
@@ -406,7 +404,7 @@ public class ServerboundKeyUpdatePacket {
 						});
 						success.set(true);
 					}
-					case 40 -> {
+					case 39 -> {
 						// Bless me papi
 						player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(beneficence -> {
 							if(beneficence.getBeneficence() == 0) {
@@ -424,7 +422,7 @@ public class ServerboundKeyUpdatePacket {
 						});
 						success.set(true);
 					}
-					case 41 -> {
+					case 40 -> {
 						// Thing
 						player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(beneficence -> {
 							if(beneficence.getBeneficence() == 0) {
@@ -436,7 +434,7 @@ public class ServerboundKeyUpdatePacket {
 						});
 						success.set(true);
 					}
-					case 42 -> {
+					case 41 -> {
 						// Godlike
 						player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(beneficence -> {
 							if(beneficence.getBeneficence() == 0) {

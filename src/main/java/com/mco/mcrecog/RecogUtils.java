@@ -32,20 +32,19 @@ public class RecogUtils {
 			Items.CRIMSON_BUTTON, Items.CLAY_BALL, Items.COCOA_BEANS, Items.PUFFERFISH, Items.ROTTEN_FLESH, Items.SMALL_AMETHYST_BUD
 	);
 
-	public static final int SPLAT_TICKS = 300;
-	public static final int SPLAT_START = 100;
+	public static final int SPLAT_START = 300;
 
 	public static List<String> TRIGGERS = Arrays.asList(
-			"pig", "sub", "follow", "cave", "yike", "day", "troll", "high", "diamond", "craft", "rot", "bone", "dream",
+			"crow", "pig", "sub", "follow", "cave", "yike", "day", "troll", "high", "diamond", "craft", "rot", "bone", "dream",
 			"end", "dragon", "boat", "no shot", "bear", "axolotl", "creep", "rod", "nether", "bed", "twitch",
 			"coal", "iron", "gold", "mod", "port", "water", "block", "village", "mine", "gam", "light", "ink", "bud",
 			"poggers", "blessmepapi", "thing", "godlike"
 	);
 
 	public static List<String> RESPONSES = Arrays.asList(
-			"Lose all hunger", "Lose something random", "Big hole", "Mining fatigue", "Lava source block", "Set time to night",
+			"Explode and die", "Lose all hunger", "Lose something random", "Big hole", "Mining fatigue", "Lava source block", "Set time to night",
 			"Drop inventory", "Launched in the air", "Set to half a heart", "Surround in obsidian", "Spawn 10 zombies",
-			"Spawn 10 skeletons", "Instant death", "Spawn 10 angry endermen", "Spawn dragon", "Fill inventory with boats",
+			"Spawn 10 skeletons", "Instant death", "Spawn 10 angry endermen", "Play dragon noise, spawn 10 endermite", "Fill inventory with boats",
 			"Lose 10 arrows", "Spawn 7 hostile polar bears", "Axolotl time", "Spawn 7 creepers",
 			"Spawn 7 blazes", "Spawn 7 wither skeletons", "Spawn 7 phantoms", "Spawn supercharged creeper", "Set on fire",
 			"Spawn aggro iron golem", "Spawn pigmen", "Shuffle inventory", "Teleport randomly", "In water", "Spawn killer rabbits",

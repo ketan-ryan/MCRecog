@@ -34,6 +34,8 @@ public class RecogPacketHandler {
 				WordsDisabledDataSyncPacket::new, WordsDisabledDataSyncPacket::handle);
 		INSTANCE.registerMessage(index++, DeathDataSyncPacket.class, DeathDataSyncPacket::toBytes,
 				DeathDataSyncPacket::new, DeathDataSyncPacket::handle);
+		INSTANCE.registerMessage(index++, InkDataSyncPacket.class, InkDataSyncPacket::toBytes,
+				InkDataSyncPacket::new, InkDataSyncPacket::handle);
 	}
 
 	public static <MSG> void sendToServer(MSG message) {

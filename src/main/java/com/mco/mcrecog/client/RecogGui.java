@@ -2,18 +2,54 @@ package com.mco.mcrecog.client;
 
 import com.mco.mcrecog.MCRecog;
 import com.mco.mcrecog.RecogConfig;
+import com.mco.mcrecog.RecogUtils;
+import com.mco.mcrecog.capabilities.ink.PlayerInk;
+import com.mco.mcrecog.network.RecogPacketHandler;
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.client.gui.overlay.IGuiOverlay;
 
 import java.math.BigDecimal;
 
 public class RecogGui {
 	private static final ResourceLocation BAR = new ResourceLocation(MCRecog.MODID, "textures/mcr_icons.png");
+	private static final ResourceLocation INK = new ResourceLocation(MCRecog.MODID, "textures/splat.png");
+
+	public static final IGuiOverlay HUD_INK = ((gui, poseStack, partialTick, screenWidth, screenHeight) -> {
+		if(ClientInkData.getInkSplatTicks() <= 0) return;
+
+		float widthRatio = screenWidth / 1920.0F;
+		float heightRatio = screenHeight / 1080.0F;
+
+		poseStack.pushPose();
+		poseStack.scale(widthRatio, heightRatio, 1.0F);
+		int ticks = ClientInkData.getInkSplatTicks();
+		float f = 1.0F;
+		if(ticks < RecogUtils.SPLAT_START) {
+			f = (float) ticks / (float) RecogUtils.SPLAT_START;
+		}
+		RenderSystem.enableBlend();
+		RenderSystem.disableDepthTest();
+		RenderSystem.depthMask(false);
+		RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+		RenderSystem.setShader(GameRenderer::getPositionTexShader);
+
+		RenderSystem.setShaderTexture(0, INK);
+		RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, f);
+		GuiComponent.blit(poseStack, 0, 0, 0, 0, 1920, 1080, 1920, 1080);
+
+		RenderSystem.depthMask(true);
+		RenderSystem.enableDepthTest();
+		RenderSystem.disableBlend();
+		RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+		poseStack.popPose();
+	});
 
 	public static final IGuiOverlay HUD_DEATHS = ((gui, poseStack, partialTick, screenWidth, screenHeight) -> {
 		Font font = Minecraft.getInstance().font;
