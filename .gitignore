@@ -6,6 +6,8 @@ bin
 .classpath
 .project
 
+stats_*.json
+
 # idea
 out
 *.ipr
