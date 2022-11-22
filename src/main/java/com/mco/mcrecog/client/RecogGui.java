@@ -3,33 +3,53 @@ package com.mco.mcrecog.client;
 import com.mco.mcrecog.MCRecog;
 import com.mco.mcrecog.RecogConfig;
 import com.mco.mcrecog.RecogUtils;
-import com.mco.mcrecog.capabilities.ink.PlayerInk;
-import com.mco.mcrecog.network.RecogPacketHandler;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.math.Vector3f;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.client.gui.overlay.IGuiOverlay;
 
 import java.math.BigDecimal;
 
+import static com.mco.mcrecog.RecogUtils.TONY_TICKS;
+
 public class RecogGui {
 	private static final ResourceLocation BAR = new ResourceLocation(MCRecog.MODID, "textures/mcr_icons.png");
 	private static final ResourceLocation INK = new ResourceLocation(MCRecog.MODID, "textures/splat.png");
+	private static final ResourceLocation TONY = new ResourceLocation(MCRecog.MODID, "textures/tony.png");
+
+	public static final IGuiOverlay HUD_TONY = ((gui, poseStack, partialTick, screenWidth, screenHeight) -> {
+		if(ClientGraphicsTimersData.getTonyTicks() >= TONY_TICKS) return;
+
+		float widthRatio = screenWidth / 232.0F;
+		float heightRatio = screenHeight / 321.0F;
+		poseStack.pushPose();
+		poseStack.translate(screenWidth / 4.0F, screenHeight / 4.0F, 0);
+		poseStack.scale(widthRatio / 2.0F, heightRatio / 2.0F, 1.0F);
+		int ticks = ClientGraphicsTimersData.getTonyTicks();
+		if(ticks > 30) {
+			poseStack.translate(0F, screenHeight / 2.0F, 0F);
+			poseStack.mulPose(Vector3f.ZP.rotationDegrees(ticks * 50));
+		}
+		RenderSystem.setShader(GameRenderer::getPositionTexShader);
+		RenderSystem.setShaderTexture(0, TONY);
+		GuiComponent.blit(poseStack, 0, 0, 0, 0, 232, 321, 232, 321);
+		poseStack.popPose();
+	});
 
 	public static final IGuiOverlay HUD_INK = ((gui, poseStack, partialTick, screenWidth, screenHeight) -> {
-		if(ClientInkData.getInkSplatTicks() <= 0) return;
+		if(ClientGraphicsTimersData.getInkSplatTicks() <= 0) return;
 
 		float widthRatio = screenWidth / 1920.0F;
 		float heightRatio = screenHeight / 1080.0F;
 
 		poseStack.pushPose();
 		poseStack.scale(widthRatio, heightRatio, 1.0F);
-		int ticks = ClientInkData.getInkSplatTicks();
+		int ticks = ClientGraphicsTimersData.getInkSplatTicks();
 		float f = 1.0F;
 		if(ticks < RecogUtils.SPLAT_START) {
 			f = (float) ticks / (float) RecogUtils.SPLAT_START;

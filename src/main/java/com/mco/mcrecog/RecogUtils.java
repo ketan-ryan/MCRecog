@@ -33,12 +33,13 @@ public class RecogUtils {
 	);
 
 	public static final int SPLAT_START = 300;
+	public static final int TONY_TICKS = 90;
 
 	public static List<String> TRIGGERS = Arrays.asList(
 			"crow", "pig", "sub", "follow", "cave", "yike", "day", "troll", "high", "diamond", "craft", "rot", "bone", "dream",
 			"end", "dragon", "boat", "no shot", "bear", "axolotl", "creep", "rod", "nether", "bed", "twitch",
 			"coal", "iron", "gold", "mod", "port", "water", "block", "village", "mine", "gam", "light", "ink", "bud",
-			"poggers", "blessmepapi", "thing", "godlike"
+			"poggers", "blessmepapi", "thing", "godlike", "tony"
 	);
 
 	public static List<String> RESPONSES = Arrays.asList(
@@ -49,7 +50,7 @@ public class RecogUtils {
 			"Spawn 7 blazes", "Spawn 7 wither skeletons", "Spawn 7 phantoms", "Spawn supercharged creeper", "Set on fire",
 			"Spawn aggro iron golem", "Spawn pigmen", "Shuffle inventory", "Teleport randomly", "In water", "Spawn killer rabbits",
 			"Spawn witches", "Give something useless", "Random explosion", "Lightning", "Ink Splat", "Knockback", "Heal 1 heart",
-			"No effects for 20 seconds", "Give iron nugget", "Strength effect"
+			"No effects for 20 seconds", "Give iron nugget", "Strength effect", "Tony time"
 	);
 
 	/**

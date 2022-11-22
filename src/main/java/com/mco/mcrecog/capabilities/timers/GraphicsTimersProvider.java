@@ -1,4 +1,4 @@
-package com.mco.mcrecog.capabilities.ink;
+package com.mco.mcrecog.capabilities.timers;
 
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -11,22 +11,22 @@ import net.minecraftforge.common.util.LazyOptional;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class PlayerInkProvider implements ICapabilityProvider, INBTSerializable<CompoundTag> {
-	public static Capability<PlayerInk> PLAYER_INK_SPLAT = CapabilityManager.get(new CapabilityToken<>() {});
+public class GraphicsTimersProvider implements ICapabilityProvider, INBTSerializable<CompoundTag> {
+	public static Capability<GraphicsTimers> GRAPHICS_TIMERS = CapabilityManager.get(new CapabilityToken<>() {});
 
-	private PlayerInk inkSplat = null;
-	private final LazyOptional<PlayerInk> optional = LazyOptional.of(this::createPlayerInk);
+	private GraphicsTimers graphicsTimers = null;
+	private final LazyOptional<GraphicsTimers> optional = LazyOptional.of(this::createGraphicsTimers);
 
-	private PlayerInk createPlayerInk() {
-		if(this.inkSplat == null) {
-			this.inkSplat = new PlayerInk();
+	private GraphicsTimers createGraphicsTimers() {
+		if(this.graphicsTimers == null) {
+			this.graphicsTimers = new GraphicsTimers();
 		}
-		return this.inkSplat;
+		return this.graphicsTimers;
 	}
 
 	@Override
 	public @NotNull <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
-		if(cap == PLAYER_INK_SPLAT) {
+		if(cap == GRAPHICS_TIMERS) {
 			return optional.cast();
 		}
 		return LazyOptional.empty();
@@ -35,12 +35,12 @@ public class PlayerInkProvider implements ICapabilityProvider, INBTSerializable<
 	@Override
 	public CompoundTag serializeNBT() {
 		CompoundTag nbt = new CompoundTag();
-		createPlayerInk().saveNBTData(nbt);
+		createGraphicsTimers().saveNBTData(nbt);
 		return nbt;
 	}
 
 	@Override
 	public void deserializeNBT(CompoundTag nbt) {
-		createPlayerInk().loadNBTData(nbt);
+		createGraphicsTimers().loadNBTData(nbt);
 	}
 }

@@ -5,7 +5,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public class RecogPacketHandler {
@@ -34,8 +33,8 @@ public class RecogPacketHandler {
 				WordsDisabledDataSyncPacket::new, WordsDisabledDataSyncPacket::handle);
 		INSTANCE.registerMessage(index++, DeathDataSyncPacket.class, DeathDataSyncPacket::toBytes,
 				DeathDataSyncPacket::new, DeathDataSyncPacket::handle);
-		INSTANCE.registerMessage(index++, InkDataSyncPacket.class, InkDataSyncPacket::toBytes,
-				InkDataSyncPacket::new, InkDataSyncPacket::handle);
+		INSTANCE.registerMessage(index++, GraphicsTimersDataSyncPacket.class, GraphicsTimersDataSyncPacket::toBytes,
+				GraphicsTimersDataSyncPacket::new, GraphicsTimersDataSyncPacket::handle);
 	}
 
 	public static <MSG> void sendToServer(MSG message) {

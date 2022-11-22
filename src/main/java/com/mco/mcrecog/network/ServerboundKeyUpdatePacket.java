@@ -4,15 +4,12 @@ import com.mco.mcrecog.RecogConfig;
 import com.mco.mcrecog.RecogEffects;
 import com.mco.mcrecog.capabilities.beneficence.PlayerBeneficenceProvider;
 import com.mco.mcrecog.capabilities.disabled.PlayerWordsDisabledProvider;
-import com.mco.mcrecog.capabilities.ink.PlayerInkProvider;
+import com.mco.mcrecog.capabilities.timers.GraphicsTimersProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -357,7 +354,6 @@ public class ServerboundKeyUpdatePacket {
 					}
 					case 33 -> {
 						// Mine
-						// TODO: Check
 						Item randItem = USELESS_ITEMS.get(rand.nextInt(USELESS_ITEMS.size()));
 						giveItem(player, randItem, rand.nextInt(64));
 
@@ -379,9 +375,9 @@ public class ServerboundKeyUpdatePacket {
 					}
 					case 36 -> {
 						// Ink
-						player.getCapability(PlayerInkProvider.PLAYER_INK_SPLAT).ifPresent(inkSplat -> {
-							inkSplat.startSplat();
-							RecogPacketHandler.sendToClient(new InkDataSyncPacket(inkSplat.getSplatTicks()), player);
+						player.getCapability(GraphicsTimersProvider.GRAPHICS_TIMERS).ifPresent(graphicsTimers -> {
+							graphicsTimers.startSplat();
+							RecogPacketHandler.sendToClient(new GraphicsTimersDataSyncPacket(graphicsTimers.getSplatTicks(), graphicsTimers.getTonyTicks()), player);
 						});
 						success.set(true);
 					}
@@ -443,6 +439,14 @@ public class ServerboundKeyUpdatePacket {
 								beneficence.addBeneficence(1200);
 								RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(beneficence.getBeneficence(), beneficence.getMaxBeneficence()), player);
 							}
+						});
+						success.set(true);
+					}
+					case 42 -> {
+						// Tony
+						player.getCapability(GraphicsTimersProvider.GRAPHICS_TIMERS).ifPresent(graphicsTimers -> {
+							graphicsTimers.startTony();
+							RecogPacketHandler.sendToClient(new GraphicsTimersDataSyncPacket(graphicsTimers.getSplatTicks(), graphicsTimers.getTonyTicks()), player);
 						});
 						success.set(true);
 					}

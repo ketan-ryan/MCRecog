@@ -2,7 +2,7 @@ package com.mco.mcrecog;
 
 import com.mco.mcrecog.capabilities.beneficence.PlayerBeneficenceProvider;
 import com.mco.mcrecog.capabilities.disabled.PlayerWordsDisabledProvider;
-import com.mco.mcrecog.capabilities.ink.PlayerInkProvider;
+import com.mco.mcrecog.capabilities.timers.GraphicsTimersProvider;
 import com.mco.mcrecog.client.ClientWordsDisabledData;
 import com.mco.mcrecog.client.RecogGui;
 import com.mco.mcrecog.network.*;
@@ -22,6 +22,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.data.event.GatherDataEvent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
@@ -111,6 +112,11 @@ public class MCRecog
     }
 
     @SubscribeEvent
+    public void gatherDataEvent(GatherDataEvent event) {
+        event.getGenerator().addProvider(false, new RecogSounds(event.getGenerator(), MODID, event.getExistingFileHelper()));
+    }
+
+    @SubscribeEvent
     public void onAttachCapabilitiesEvent(AttachCapabilitiesEvent<Entity> event) {
         if(event.getObject() instanceof Player) {
             if(!event.getObject().getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).isPresent()) {
@@ -119,8 +125,8 @@ public class MCRecog
             if(!event.getObject().getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).isPresent()) {
                 event.addCapability(new ResourceLocation(MODID, "disabled"), new PlayerWordsDisabledProvider());
             }
-            if(!event.getObject().getCapability(PlayerInkProvider.PLAYER_INK_SPLAT).isPresent()) {
-                event.addCapability(new ResourceLocation(MODID, "splat"), new PlayerInkProvider());
+            if(!event.getObject().getCapability(GraphicsTimersProvider.GRAPHICS_TIMERS).isPresent()) {
+                event.addCapability(new ResourceLocation(MODID, "splat"), new GraphicsTimersProvider());
             }
         }
     }
@@ -138,8 +144,8 @@ public class MCRecog
                     newStore.copyFrom(oldStore);
                 });
             });
-            event.getOriginal().getCapability(PlayerInkProvider.PLAYER_INK_SPLAT).ifPresent(oldStore -> {
-                event.getOriginal().getCapability(PlayerInkProvider.PLAYER_INK_SPLAT).ifPresent(newStore -> {
+            event.getOriginal().getCapability(GraphicsTimersProvider.GRAPHICS_TIMERS).ifPresent(oldStore -> {
+                event.getOriginal().getCapability(GraphicsTimersProvider.GRAPHICS_TIMERS).ifPresent(newStore -> {
                     newStore.copyFrom(oldStore);
                 });
             });
@@ -156,8 +162,8 @@ public class MCRecog
                 player.getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).ifPresent(wordsDisabled -> {
                     RecogPacketHandler.sendToClient(new WordsDisabledDataSyncPacket(wordsDisabled.getDisabledTime()), player);
                 });
-                player.getCapability(PlayerInkProvider.PLAYER_INK_SPLAT).ifPresent(inkSplat -> {
-                    RecogPacketHandler.sendToClient(new InkDataSyncPacket(inkSplat.getSplatTicks()), player);
+                player.getCapability(GraphicsTimersProvider.GRAPHICS_TIMERS).ifPresent(graphicsTimers -> {
+                    RecogPacketHandler.sendToClient(new GraphicsTimersDataSyncPacket(graphicsTimers.getSplatTicks(), graphicsTimers.getTonyTicks()), player);
                 });
             }
         }
@@ -174,7 +180,13 @@ public class MCRecog
     @SubscribeEvent
     public void onKeyEvent(InputEvent.Key event) {
         if(event.getAction() != InputConstants.PRESS) return;
+
         if(event.getKey() == GLFW.GLFW_KEY_B) {
+            try {
+                queue.put("Tony time");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(37));
         }
     }
@@ -194,9 +206,10 @@ public class MCRecog
             RecogPacketHandler.sendToClient(new WordsDisabledDataSyncPacket(wordsDisabled.getDisabledTime()), player);
         });
 
-        event.player.getCapability(PlayerInkProvider.PLAYER_INK_SPLAT).ifPresent(inkSplat -> {
-            inkSplat.updateSplat();
-            RecogPacketHandler.sendToClient(new InkDataSyncPacket(inkSplat.getSplatTicks()), player);
+        event.player.getCapability(GraphicsTimersProvider.GRAPHICS_TIMERS).ifPresent(graphicsTimers -> {
+            graphicsTimers.updateSplat();
+            graphicsTimers.updateTony();
+            RecogPacketHandler.sendToClient(new GraphicsTimersDataSyncPacket(graphicsTimers.getSplatTicks(), graphicsTimers.getTonyTicks()), player);
         });
 
         RecogPacketHandler.sendToClient(new DeathDataSyncPacket(player.getStats().getValue(Stats.CUSTOM, Stats.DEATHS)), player);
@@ -212,7 +225,7 @@ public class MCRecog
         while ((msg = queue.poll()) != null) {
             event.player.sendSystemMessage(Component.literal(msg));
 
-            for (int i = 0; i < 42; i++) {
+            for (int i = 0; i < 43; i++) {
                 if (RESPONSES.get(i).equals(msg)) {
                     RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(i));
 
@@ -227,76 +240,14 @@ public class MCRecog
                     else if (i == 36) {
                         soundEvent = SoundEvents.SLIME_SQUISH;
                         volume = 10.0F;
+                    } else if(i == 42) {
+                        soundEvent = RecogSounds.TONY;
                     }
                     if(soundEvent != null) {
                         event.player.level.playLocalSound(event.player.position().x, event.player.position().y, event.player.position().z, soundEvent, SoundSource.MASTER, volume, 1.0F, false);
                     }
                 }
             }
-            /*// Food
-            if(RESPONSES.get(0).equals(msg)) {
-                RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(1));
-            }
-            // Lose something random
-            if(RESPONSES.get(1).equals(msg)) {
-                RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(2));
-            }
-            // Hole
-            if(RESPONSES.get(2).equals(msg)) {
-                RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(3));
-            }
-            // Mining Fatigue
-            if(RESPONSES.get(3).equals(msg)) {
-                RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(4));
-            }
-            // Lava
-            if(RESPONSES.get(4).equals(msg)) {
-                RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(5));
-            }
-            // Nighttime
-            if(RESPONSES.get(5).equals(msg)) {
-                RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(6));
-            }
-            // Drop inventory
-            if(RESPONSES.get(6).equals(msg)) {
-                RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(7));
-            }
-            // Launched in air (jump)
-            if(RESPONSES.get(7).equals(msg)) {
-                RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(8));
-            }
-            // Set to half a heart
-            if(RESPONSES.get(8).equals(msg)) {
-                RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(9));
-            }
-            // Surround in obsidian
-            if(RESPONSES.get(9).equals(msg)) {
-                RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(10));
-            }
-            // Spawn zombies
-            if(RESPONSES.get(10).equals(msg)) {
-                RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(11));
-            }
-            // Spawn skeletons
-            if(RESPONSES.get(11).equals(msg)) {
-                RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(12));
-            }
-            // Instant death
-            if(RESPONSES.get(12).equals(msg)) {
-                RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(13));
-            }
-            // Spawn endermen
-            if(RESPONSES.get(13).equals(msg)) {
-                RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(14));
-            }
-            // Spawn dragon
-            if(RESPONSES.get(14).equals(msg)) {
-                RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(15));
-            }
-            // Boats
-            if(RESPONSES.get(15).equals(msg)) {
-                RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(16));
-            }*/
         }
     }
 
@@ -316,6 +267,7 @@ public class MCRecog
         public static void registerGuiOverlays(RegisterGuiOverlaysEvent event) {
             event.registerAboveAll("bars", RecogGui.HUD_BARS);
             event.registerAboveAll("deaths", RecogGui.HUD_DEATHS);
+            event.registerAboveAll("tony", RecogGui.HUD_TONY);
             event.registerAboveAll("ink", RecogGui.HUD_INK);
         }
     }
