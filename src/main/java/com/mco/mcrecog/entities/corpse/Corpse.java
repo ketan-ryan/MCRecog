@@ -26,6 +26,7 @@ public class Corpse extends Entity {
 
 	public Corpse(EntityType<? extends Entity> type, Level level) {
 		super(type, level);
+
 	}
 
 	public static Corpse createCorpse(Player player) {

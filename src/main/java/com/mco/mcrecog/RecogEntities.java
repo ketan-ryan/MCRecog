@@ -13,6 +13,6 @@ public class RecogEntities {
 
 	public static final RegistryObject<EntityType<Corpse>> CORPSE = ENTITIES.register("modid", () ->
 			EntityType.Builder.of(Corpse::new, MobCategory.CREATURE)
-					.sized(2, 1)
+					.sized(1.5F, 0.5F)
 					.build(new ResourceLocation(MCRecog.MODID, "corpse").toString()));
 }
