@@ -2,8 +2,7 @@ package com.mco.mcrecog.network;
 
 import com.mco.mcrecog.RecogConfig;
 import com.mco.mcrecog.RecogEffects;
-import com.mco.mcrecog.capabilities.beneficence.PlayerBeneficenceProvider;
-import com.mco.mcrecog.capabilities.disabled.PlayerWordsDisabledProvider;
+import com.mco.mcrecog.capabilities.beneficence.WordTimersProvider;
 import com.mco.mcrecog.capabilities.timers.GraphicsTimersProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -390,54 +389,52 @@ public class ServerboundKeyUpdatePacket {
 					}
 					case 38 -> {
 						// Poggers
-						player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(playerBeneficence -> {
-							if(playerBeneficence.getBeneficence() == 0) {
+						player.getCapability(WordTimersProvider.WORD_TIMERS).ifPresent(wordTimers -> {
+							if(wordTimers.getBeneficence() == 0) {
 								player.heal(2);
-								playerBeneficence.setMaxBeneficence(1200);
-								playerBeneficence.addBeneficence(1200);
-								RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(playerBeneficence.getBeneficence(), playerBeneficence.getMaxBeneficence()), player);
+								wordTimers.setMaxBeneficence(1200);
+								wordTimers.addBeneficence(1200);
+								RecogPacketHandler.sendToClient(new WordTimersDataSyncPacket(
+										wordTimers.getBeneficence(), wordTimers.getMaxBeneficence(), wordTimers.getDisabledTime()), player);
 							}
 						});
 						success.set(true);
 					}
 					case 39 -> {
 						// Bless me papi
-						player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(beneficence -> {
-							if(beneficence.getBeneficence() == 0) {
-								player.getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).ifPresent(wordsDisabled -> {
-									if(wordsDisabled.getDisabledTime() == 0) {
-										wordsDisabled.setDisabled();
-										RecogPacketHandler.sendToClient(new WordsDisabledDataSyncPacket(wordsDisabled.getDisabledTime()), player);
-
-										beneficence.setMaxBeneficence(3600);
-										beneficence.addBeneficence(3600);
-										RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(beneficence.getBeneficence(), beneficence.getMaxBeneficence()), player);
-									}
-								});
+						player.getCapability(WordTimersProvider.WORD_TIMERS).ifPresent(wordTimers -> {
+							if(wordTimers.getBeneficence() == 0 && wordTimers.getDisabledTime() == 0) {
+								wordTimers.setDisabled();
+								wordTimers.setMaxBeneficence(3600);
+								wordTimers.addBeneficence(3600);
+								RecogPacketHandler.sendToClient(new WordTimersDataSyncPacket(
+										wordTimers.getBeneficence(), wordTimers.getMaxBeneficence(), wordTimers.getDisabledTime()), player);
 							}
 						});
 						success.set(true);
 					}
 					case 40 -> {
 						// Thing
-						player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(beneficence -> {
-							if(beneficence.getBeneficence() == 0) {
+						player.getCapability(WordTimersProvider.WORD_TIMERS).ifPresent(wordTimers -> {
+							if(wordTimers.getBeneficence() == 0) {
 								giveItem(player, Items.IRON_NUGGET, 1);
-								beneficence.setMaxBeneficence(800);
-								beneficence.addBeneficence(800);
-								RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(beneficence.getBeneficence(), beneficence.getMaxBeneficence()), player);
+								wordTimers.setMaxBeneficence(800);
+								wordTimers.addBeneficence(800);
+								RecogPacketHandler.sendToClient(new WordTimersDataSyncPacket(
+										wordTimers.getBeneficence(), wordTimers.getMaxBeneficence(), wordTimers.getDisabledTime()), player);
 							}
 						});
 						success.set(true);
 					}
 					case 41 -> {
 						// Godlike
-						player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(beneficence -> {
-							if(beneficence.getBeneficence() == 0) {
+						player.getCapability(WordTimersProvider.WORD_TIMERS).ifPresent(wordTimers -> {
+							if(wordTimers.getBeneficence() == 0) {
 								player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 600, 0));
-								beneficence.setMaxBeneficence(1200);
-								beneficence.addBeneficence(1200);
-								RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(beneficence.getBeneficence(), beneficence.getMaxBeneficence()), player);
+								wordTimers.setMaxBeneficence(1200);
+								wordTimers.addBeneficence(1200);
+								RecogPacketHandler.sendToClient(new WordTimersDataSyncPacket(
+										wordTimers.getBeneficence(), wordTimers.getMaxBeneficence(), wordTimers.getDisabledTime()), player);
 							}
 						});
 						success.set(true);

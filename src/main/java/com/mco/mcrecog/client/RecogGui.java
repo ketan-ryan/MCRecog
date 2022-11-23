@@ -93,14 +93,14 @@ public class RecogGui {
 		RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
 		RenderSystem.setShaderTexture(0, BAR);
 
-		boolean isBeneficenceActive = ClientBeneficenceData.getPlayerBeneficence() > 0;
-		boolean isDisabled = ClientWordsDisabledData.getWordsDisabledTime() > 0;
+		boolean isBeneficenceActive = ClientWordTimersData.getPlayerBeneficence() > 0;
+		boolean isDisabled = ClientWordTimersData.getWordsDisabledTime() > 0;
 
 		if(isBeneficenceActive) {
 			//               stack       x  y      texX        texY         width      height     texWidth    texHeight
 			GuiComponent.blit(poseStack, x, y, 0, 0, 97, 5, 256, 256);
 			RenderSystem.setShaderColor(0.0F, 1.0F, 0.0F, 1.0F);
-			float f = (float) ClientBeneficenceData.getPlayerBeneficence() / (float) ClientBeneficenceData.getMaxBeneficence();
+			float f = (float) ClientWordTimersData.getPlayerBeneficence() / (float) ClientWordTimersData.getMaxBeneficence();
 			int j = (int) (f * 97.0F); // where 97 is the width of the bar
 			if (j > 0) {
 				GuiComponent.blit(poseStack, x, y, 0, 5, j, 5, 256, 256);
@@ -112,7 +112,7 @@ public class RecogGui {
 			RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
 			GuiComponent.blit(poseStack, x, disabledYOff, 0, 0, 97, 5, 256, 256);
 			RenderSystem.setShaderColor(1.0F, 0.0F, 0.0F, 1.0F);
-			float f = (float) ClientWordsDisabledData.getWordsDisabledTime() / 800.0F;
+			float f = (float) ClientWordTimersData.getWordsDisabledTime() / 800.0F;
 			int j = (int) (f * 97.0F); // where 97 is the width of the bar
 			if (j > 0) {
 				GuiComponent.blit(poseStack, x, disabledYOff, 0, 5, j, 5, 256, 256);

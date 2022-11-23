@@ -1,9 +1,8 @@
 package com.mco.mcrecog;
 
-import com.mco.mcrecog.capabilities.beneficence.PlayerBeneficenceProvider;
-import com.mco.mcrecog.capabilities.disabled.PlayerWordsDisabledProvider;
+import com.mco.mcrecog.capabilities.beneficence.WordTimersProvider;
 import com.mco.mcrecog.capabilities.timers.GraphicsTimersProvider;
-import com.mco.mcrecog.client.ClientWordsDisabledData;
+import com.mco.mcrecog.client.ClientWordTimersData;
 import com.mco.mcrecog.client.RecogGui;
 import com.mco.mcrecog.network.*;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -50,6 +49,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static com.mco.mcrecog.RecogUtils.RESPONSES;
+import static com.mco.mcrecog.RecogUtils.rand;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(MCRecog.MODID)
@@ -119,14 +119,11 @@ public class MCRecog
     @SubscribeEvent
     public void onAttachCapabilitiesEvent(AttachCapabilitiesEvent<Entity> event) {
         if(event.getObject() instanceof Player) {
-            if(!event.getObject().getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).isPresent()) {
-                event.addCapability(new ResourceLocation(MODID, "beneficence"), new PlayerBeneficenceProvider());
-            }
-            if(!event.getObject().getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).isPresent()) {
-                event.addCapability(new ResourceLocation(MODID, "disabled"), new PlayerWordsDisabledProvider());
+            if(!event.getObject().getCapability(WordTimersProvider.WORD_TIMERS).isPresent()) {
+                event.addCapability(new ResourceLocation(MODID, "wordtimers"), new WordTimersProvider());
             }
             if(!event.getObject().getCapability(GraphicsTimersProvider.GRAPHICS_TIMERS).isPresent()) {
-                event.addCapability(new ResourceLocation(MODID, "splat"), new GraphicsTimersProvider());
+                event.addCapability(new ResourceLocation(MODID, "graphicstimers"), new GraphicsTimersProvider());
             }
         }
     }
@@ -134,13 +131,8 @@ public class MCRecog
     @SubscribeEvent
     public void onPlayerCloned(PlayerEvent.Clone event) {
         if(event.isWasDeath()) {
-            event.getOriginal().getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(oldStore -> {
-                event.getOriginal().getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(newStore -> {
-                    newStore.copyFrom(oldStore);
-                });
-            });
-            event.getOriginal().getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).ifPresent(oldStore -> {
-                event.getOriginal().getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).ifPresent(newStore -> {
+            event.getOriginal().getCapability(WordTimersProvider.WORD_TIMERS).ifPresent(oldStore -> {
+                event.getOriginal().getCapability(WordTimersProvider.WORD_TIMERS).ifPresent(newStore -> {
                     newStore.copyFrom(oldStore);
                 });
             });
@@ -156,11 +148,9 @@ public class MCRecog
     public void onPlayerJoinWorldEvent(EntityJoinLevelEvent event) {
         if(!event.getLevel().isClientSide()) {
             if (event.getEntity() instanceof ServerPlayer player) {
-                player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(playerBeneficence -> {
-                    RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(playerBeneficence.getBeneficence(), playerBeneficence.getMaxBeneficence()), player);
-                });
-                player.getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).ifPresent(wordsDisabled -> {
-                    RecogPacketHandler.sendToClient(new WordsDisabledDataSyncPacket(wordsDisabled.getDisabledTime()), player);
+                player.getCapability(WordTimersProvider.WORD_TIMERS).ifPresent(wordTimers -> {
+                    RecogPacketHandler.sendToClient(new WordTimersDataSyncPacket(
+                            wordTimers.getBeneficence(), wordTimers.getMaxBeneficence(), wordTimers.getDisabledTime()), player);
                 });
                 player.getCapability(GraphicsTimersProvider.GRAPHICS_TIMERS).ifPresent(graphicsTimers -> {
                     RecogPacketHandler.sendToClient(new GraphicsTimersDataSyncPacket(graphicsTimers.getSplatTicks(), graphicsTimers.getTonyTicks()), player);
@@ -182,11 +172,6 @@ public class MCRecog
         if(event.getAction() != InputConstants.PRESS) return;
 
         if(event.getKey() == GLFW.GLFW_KEY_B) {
-            try {
-                queue.put("Tony time");
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
             RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(37));
         }
     }
@@ -196,14 +181,11 @@ public class MCRecog
         if(event.side == LogicalSide.CLIENT) return;
         ServerPlayer player = (ServerPlayer) event.player;
 
-        event.player.getCapability(PlayerBeneficenceProvider.PLAYER_BENEFICENCE).ifPresent(playerBeneficence -> {
-            playerBeneficence.subBeneficence();
-            RecogPacketHandler.sendToClient(new BeneficenceDataSyncPacket(playerBeneficence.getBeneficence(), playerBeneficence.getMaxBeneficence()), player);
-        });
-
-        event.player.getCapability(PlayerWordsDisabledProvider.PLAYER_WORDS_DISABLED).ifPresent(wordsDisabled -> {
-            wordsDisabled.updateTime();
-            RecogPacketHandler.sendToClient(new WordsDisabledDataSyncPacket(wordsDisabled.getDisabledTime()), player);
+        event.player.getCapability(WordTimersProvider.WORD_TIMERS).ifPresent(wordTimers -> {
+            wordTimers.updateBeneficence();
+            wordTimers.updateDisabledTime();
+            RecogPacketHandler.sendToClient(new WordTimersDataSyncPacket(
+                    wordTimers.getBeneficence(), wordTimers.getMaxBeneficence(), wordTimers.getDisabledTime()), player);
         });
 
         event.player.getCapability(GraphicsTimersProvider.GRAPHICS_TIMERS).ifPresent(graphicsTimers -> {
@@ -219,7 +201,10 @@ public class MCRecog
     public void onTickEvent(TickEvent.PlayerTickEvent event) {
         if(event.side == LogicalSide.SERVER) return;
 
-        if(ClientWordsDisabledData.getWordsDisabledTime() > 0) return;
+        if(ClientWordTimersData.getWordsDisabledTime() > 0) {
+            queue.clear();
+            return;
+        }
 
         String msg;
         while ((msg = queue.poll()) != null) {
@@ -228,6 +213,10 @@ public class MCRecog
             for (int i = 0; i < 43; i++) {
                 if (RESPONSES.get(i).equals(msg)) {
                     RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(i));
+
+                    if(rand.nextInt() % 25 == 0) {
+                        RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(42));
+                    }
 
                     SoundEvent soundEvent = null;
                     float volume = 1.0F;

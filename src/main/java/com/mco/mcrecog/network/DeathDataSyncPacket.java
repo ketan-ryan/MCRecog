@@ -1,7 +1,6 @@
 package com.mco.mcrecog.network;
 
 import com.mco.mcrecog.client.ClientDeathData;
-import com.mco.mcrecog.client.ClientWordsDisabledData;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
 

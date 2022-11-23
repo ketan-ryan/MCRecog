@@ -3,11 +3,17 @@ package com.mco.mcrecog.capabilities.beneficence;
 import net.minecraftforge.common.capabilities.AutoRegisterCapability;
 
 @AutoRegisterCapability
-public interface IPlayerBeneficence {
+public interface IWordTimers {
 	int getBeneficence();
+	void addBeneficence(int beneficence);
+	void updateBeneficence();
+
 	void setMaxBeneficence(int beneficence);
 	int getMaxBeneficence();
-	void addBeneficence(int beneficence);
-	void subBeneficence();
-	void copyFrom(IPlayerBeneficence source);
+
+	int getDisabledTime();
+	void setDisabled();
+	void updateDisabledTime();
+
+	void copyFrom(IWordTimers source);
 }

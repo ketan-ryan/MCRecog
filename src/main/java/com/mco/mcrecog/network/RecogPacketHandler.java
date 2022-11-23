@@ -27,10 +27,8 @@ public class RecogPacketHandler {
 		INSTANCE.registerMessage(index++, ServerboundKeyUpdatePacket.class, ServerboundKeyUpdatePacket::encode,
 				ServerboundKeyUpdatePacket::new, ServerboundKeyUpdatePacket::handle);
 		// Server -> Client
-		INSTANCE.registerMessage(index++, BeneficenceDataSyncPacket.class, BeneficenceDataSyncPacket::toBytes,
-				BeneficenceDataSyncPacket::new, BeneficenceDataSyncPacket::handle);
-		INSTANCE.registerMessage(index++, WordsDisabledDataSyncPacket.class, WordsDisabledDataSyncPacket::toBytes,
-				WordsDisabledDataSyncPacket::new, WordsDisabledDataSyncPacket::handle);
+		INSTANCE.registerMessage(index++, WordTimersDataSyncPacket.class, WordTimersDataSyncPacket::toBytes,
+				WordTimersDataSyncPacket::new, WordTimersDataSyncPacket::handle);
 		INSTANCE.registerMessage(index++, DeathDataSyncPacket.class, DeathDataSyncPacket::toBytes,
 				DeathDataSyncPacket::new, DeathDataSyncPacket::handle);
 		INSTANCE.registerMessage(index++, GraphicsTimersDataSyncPacket.class, GraphicsTimersDataSyncPacket::toBytes,
