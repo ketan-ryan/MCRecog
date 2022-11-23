@@ -9,18 +9,24 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.animal.Fox;
 import net.minecraft.world.entity.animal.Rabbit;
 import net.minecraft.world.entity.monster.Creeper;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.network.NetworkEvent;
 
@@ -311,17 +317,21 @@ public class ServerboundKeyUpdatePacket {
 					}
 					case 29 -> {
 						// Port
-						// TODO: Fix
-						double d3 = player.getX() + (player.getRandom().nextDouble() - 0.5D) * 16.0D;
-						double d4 = Mth.clamp(player.getY() + (double)(player.getRandom().nextInt(16) - 8),
-								level.getMinBuildHeight(), (level.getMinBuildHeight() + ((ServerLevel)level).getLogicalHeight() - 1));
-						double d5 = player.getZ() + (player.getRandom().nextDouble() - 0.5D) * 16.0D;
+						for(int i = 0; i < 16; ++i) {
+							double d3 = player.getX() + (player.getRandom().nextDouble() - 0.5D) * 16.0D;
+							double d4 = Mth.clamp(player.getY() + (double)(player.getRandom().nextInt(16) - 8), (double)level.getMinBuildHeight(), (double)(level.getMinBuildHeight() + ((ServerLevel)level).getLogicalHeight() - 1));
+							double d5 = player.getZ() + (player.getRandom().nextDouble() - 0.5D) * 16.0D;
+							if (player.isPassenger()) {
+								player.stopRiding();
+							}
 
-						net.minecraftforge.event.entity.EntityTeleportEvent.ChorusFruit event =
-								net.minecraftforge.event.ForgeEventFactory.onChorusFruitTeleport(player, d3, d4, d5);
-						if (player.randomTeleport(event.getTargetX(), event.getTargetY(), event.getTargetZ(), true)) {
+							Vec3 vec3 = player.position();
+							level.gameEvent(GameEvent.TELEPORT, vec3, GameEvent.Context.of(player));
+							net.minecraftforge.event.entity.EntityTeleportEvent.ChorusFruit event = net.minecraftforge.event.ForgeEventFactory.onChorusFruitTeleport(player, d3, d4, d5);
+							if (player.randomTeleport(event.getTargetX(), event.getTargetY(), event.getTargetZ(), true)) {
+								break;
+							}
 						}
-
 						success.set(true);
 					}
 					case 30 -> {
@@ -382,9 +392,7 @@ public class ServerboundKeyUpdatePacket {
 					}
 					case 37 -> {
 						// Bud
-						// TODO: Knockback
-						System.out.println("Knockback");
-
+						// Handled clientside
 						success.set(true);
 					}
 					case 38 -> {

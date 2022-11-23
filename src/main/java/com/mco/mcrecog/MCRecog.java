@@ -15,6 +15,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stats;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
@@ -172,7 +173,7 @@ public class MCRecog
         if(event.getAction() != InputConstants.PRESS) return;
 
         if(event.getKey() == GLFW.GLFW_KEY_B) {
-            RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(37));
+            RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(29));
         }
     }
 
@@ -212,6 +213,16 @@ public class MCRecog
 
             for (int i = 0; i < 43; i++) {
                 if (RESPONSES.get(i).equals(msg)) {
+
+                    // Knockback
+                    if(i == 37) {
+                        int rand = RecogUtils.rand.nextInt(5) + 2;
+                        int randX = RecogUtils.rand.nextDouble() < 0.5 ? -1 : 1;
+                        var player = event.player;
+                        player.knockback(((float)rand * 0.5F), Mth.sin(player.getYRot() * ((float)Math.PI / 180F)) * randX,
+                                (-Mth.cos(player.getYRot() * ((float)Math.PI / 180F))));
+                    }
+
                     RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(i));
 
                     if(rand.nextInt() % 25 == 0) {
