@@ -1,4 +1,4 @@
-package com.mco.mcrecog;
+package com.mco.mcrecog.main;
 
 import net.minecraftforge.common.ForgeConfigSpec;
 

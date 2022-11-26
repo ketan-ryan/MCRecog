@@ -1,5 +1,6 @@
-package com.mco.mcrecog;
+package com.mco.mcrecog.main;
 
+import com.mco.mcrecog.MCRecog;
 import com.mco.mcrecog.effects.GravityEffect;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;

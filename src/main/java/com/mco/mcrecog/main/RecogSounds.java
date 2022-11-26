@@ -1,5 +1,6 @@
-package com.mco.mcrecog;
+package com.mco.mcrecog.main;
 
+import com.mco.mcrecog.MCRecog;
 import net.minecraft.data.DataGenerator;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
@@ -14,7 +15,7 @@ public class RecogSounds extends SoundDefinitionsProvider {
 	 * @param modId     The mod ID of the current mod.
 	 * @param helper    The existing file helper provided by the event you are initializing this provider in.
 	 */
-	protected RecogSounds(DataGenerator generator, String modId, ExistingFileHelper helper) {
+	public RecogSounds(DataGenerator generator, String modId, ExistingFileHelper helper) {
 		super(generator, modId, helper);
 	}
 

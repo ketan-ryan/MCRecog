@@ -2,7 +2,7 @@ package com.mco.mcrecog.capabilities.timers;
 
 import net.minecraft.nbt.CompoundTag;
 
-import static com.mco.mcrecog.RecogUtils.TONY_TICKS;
+import static com.mco.mcrecog.main.RecogUtils.TONY_TICKS;
 
 public class GraphicsTimers implements IGraphicsTimers {
 	private static final int SPLAT_TICKS = 400;

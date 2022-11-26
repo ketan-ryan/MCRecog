@@ -1,8 +1,8 @@
 package com.mco.mcrecog.network;
 
-import com.mco.mcrecog.RecogConfig;
-import com.mco.mcrecog.RecogEffects;
-import com.mco.mcrecog.RecogStats;
+import com.mco.mcrecog.main.RecogConfig;
+import com.mco.mcrecog.main.RecogEffects;
+import com.mco.mcrecog.main.RecogStats;
 import com.mco.mcrecog.capabilities.beneficence.WordTimersProvider;
 import com.mco.mcrecog.capabilities.timers.GraphicsTimersProvider;
 import net.minecraft.core.BlockPos;
@@ -32,7 +32,7 @@ import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
-import static com.mco.mcrecog.RecogUtils.*;
+import static com.mco.mcrecog.main.RecogUtils.*;
 
 public class ServerboundKeyUpdatePacket {
 	public final Integer action;

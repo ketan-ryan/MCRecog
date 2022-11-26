@@ -1,8 +1,8 @@
 package com.mco.mcrecog.client;
 
 import com.mco.mcrecog.MCRecog;
-import com.mco.mcrecog.RecogConfig;
-import com.mco.mcrecog.RecogUtils;
+import com.mco.mcrecog.main.RecogConfig;
+import com.mco.mcrecog.main.RecogUtils;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.math.Vector3f;
@@ -15,7 +15,7 @@ import net.minecraftforge.client.gui.overlay.IGuiOverlay;
 
 import java.math.BigDecimal;
 
-import static com.mco.mcrecog.RecogUtils.TONY_TICKS;
+import static com.mco.mcrecog.main.RecogUtils.TONY_TICKS;
 
 public class RecogGui {
 	private static final ResourceLocation BAR = new ResourceLocation(MCRecog.MODID, "textures/mcr_icons.png");

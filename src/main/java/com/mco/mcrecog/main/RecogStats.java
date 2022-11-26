@@ -1,5 +1,6 @@
-package com.mco.mcrecog;
+package com.mco.mcrecog.main;
 
+import com.mco.mcrecog.MCRecog;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.eventbus.api.IEventBus;

@@ -4,8 +4,8 @@ import com.mco.mcrecog.capabilities.beneficence.WordTimersProvider;
 import com.mco.mcrecog.capabilities.timers.GraphicsTimersProvider;
 import com.mco.mcrecog.client.ClientWordTimersData;
 import com.mco.mcrecog.client.RecogGui;
+import com.mco.mcrecog.main.*;
 import com.mco.mcrecog.network.*;
-import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
@@ -18,7 +18,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.data.event.GatherDataEvent;
@@ -37,7 +36,6 @@ import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 
 import java.io.BufferedReader;
@@ -48,8 +46,8 @@ import java.net.Socket;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import static com.mco.mcrecog.RecogUtils.RESPONSES;
-import static com.mco.mcrecog.RecogUtils.rand;
+import static com.mco.mcrecog.main.RecogUtils.RESPONSES;
+import static com.mco.mcrecog.main.RecogUtils.rand;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(MCRecog.MODID)
