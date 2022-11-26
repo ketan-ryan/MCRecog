@@ -6,6 +6,7 @@ import com.mco.mcrecog.client.ClientWordTimersData;
 import com.mco.mcrecog.client.RecogGui;
 import com.mco.mcrecog.main.*;
 import com.mco.mcrecog.network.*;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
@@ -18,12 +19,14 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.data.event.GatherDataEvent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -36,6 +39,7 @@ import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 
 import java.io.BufferedReader;
@@ -107,6 +111,12 @@ public class MCRecog
     private void commonSetup(final FMLCommonSetupEvent event)
     {
         RecogPacketHandler.init();
+    }
+
+    @SubscribeEvent
+    public void onDropEvent(LivingDropsEvent event) {
+        if(event.getEntity().getPersistentData().contains("dropless"))
+            event.setCanceled(true);
     }
 
     @SubscribeEvent
@@ -196,6 +206,7 @@ public class MCRecog
         }
 
         String msg;
+        boolean seenTony = false;
         while ((msg = queue.poll()) != null) {
             for (int i = 0; i < 43; i++) {
                 if (RESPONSES.get(i).equals(msg)) {
@@ -210,11 +221,16 @@ public class MCRecog
 
                     RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(i));
 
-                    if(rand.nextInt() % 25 == 0) {
-                        RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(42));
+                    SoundEvent soundEvent = null;
+                    if(rand.nextInt() % 25 == 0 && !seenTony) {
+                        try {
+                            queue.put("Tony time");
+                            seenTony = true;
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
 
-                    SoundEvent soundEvent = null;
                     float volume = 1.0F;
                     if (i == 15) {
                         soundEvent = SoundEvents.ENDER_DRAGON_GROWL;
@@ -225,7 +241,7 @@ public class MCRecog
                     else if (i == 36) {
                         soundEvent = SoundEvents.SLIME_SQUISH;
                         volume = 10.0F;
-                    } else if(i == 42) {
+                    } else if (i == 42) {
                         soundEvent = RecogSounds.TONY;
                     }
                     if(soundEvent != null) {

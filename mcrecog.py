@@ -3,15 +3,27 @@ import speech_recognition
 import mc_socket
 from mc_socket import MCSocket
 import speech_recognition as sr
+import argparse
 
 
 """
 https://github.com/ketan-ryan/MCRecog/wiki
 """
+parser = argparse.ArgumentParser()
+parser.add_argument("-m", "--Microphone", help="Manually select microphone", action='store_true')
+arguments = parser.parse_args()
 
 r = sr.Recognizer()
 r.energy_threshold = 300
-mic = sr.Microphone()
+
+mic_idx = None
+if arguments.Microphone:
+    for index, name in enumerate(sr.Microphone.list_microphone_names()):
+        print(f"Microphone with name {name} found for `Microphone(device_index={index})`")
+
+    mic_idx = int(input("Please input the device index of your primary microphone: "))
+
+mic = sr.Microphone(mic_idx)
 
 mc = MCSocket(7777)
 
@@ -109,8 +121,7 @@ def get_response(response):
 
     print(response, ret)
 
-    else:
-        ret.append(res)
+    ret.append(res)
     return ret
 
 
