@@ -8,7 +8,6 @@ import com.mco.mcrecog.network.*;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
@@ -78,6 +77,7 @@ public class MCRecog
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, RecogConfig.GENERAL_SPEC);
+        ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, RecogConfig.SERVER_SPEC);
     }
 
     private void connectToSocket() {
@@ -209,8 +209,6 @@ public class MCRecog
 
         String msg;
         while ((msg = queue.poll()) != null) {
-            event.player.sendSystemMessage(Component.literal(msg));
-
             for (int i = 0; i < 43; i++) {
                 if (RESPONSES.get(i).equals(msg)) {
 

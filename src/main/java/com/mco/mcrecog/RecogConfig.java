@@ -4,11 +4,24 @@ import net.minecraftforge.common.ForgeConfigSpec;
 
 public class RecogConfig {
 	public static final ForgeConfigSpec GENERAL_SPEC;
+	public static final ForgeConfigSpec SERVER_SPEC;
 
 	static {
 		ForgeConfigSpec.Builder configBuilder = new ForgeConfigSpec.Builder();
-		setupConfig(configBuilder);
+		setupClientConfig(configBuilder);
 		GENERAL_SPEC = configBuilder.build();
+
+		ForgeConfigSpec.Builder serverBuilder = new ForgeConfigSpec.Builder();
+		setupServerConfig(serverBuilder);
+		SERVER_SPEC = serverBuilder.build();
+	}
+
+	public static ForgeConfigSpec.BooleanValue affectTeam;
+
+	private static void setupServerConfig(ForgeConfigSpec.Builder builder) {
+		affectTeam = builder
+				.comment("Whether saying a word affects all players on a team")
+				.define("affect_team", true);
 	}
 
 	public static ForgeConfigSpec.BooleanValue waterWhenSpawning;
@@ -18,7 +31,7 @@ public class RecogConfig {
 	public static ForgeConfigSpec.IntValue deathCountY;
 	public static ForgeConfigSpec.DoubleValue deathCountScale;
 
-	private static void setupConfig(ForgeConfigSpec.Builder builder) {
+	private static void setupClientConfig(ForgeConfigSpec.Builder builder) {
 		waterWhenSpawning = builder
 				.comment("Whether to give water effect when spawning mobs")
 				.define("water_spawns", true);
