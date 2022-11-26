@@ -76,13 +76,17 @@ public class ServerboundKeyUpdatePacket {
 										(double) blockPos.getZ() + 0.5D, 5.0F, true, Explosion.BlockInteraction.DESTROY);
 
 								player.kill();
-								player.awardStat(RecogStats.STAT_CROW.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_CROW.get());
+								}
 								success.set(true);
 							}
 							case 1 -> {
 								// Food
 								player.getFoodData().setFoodLevel(player.getFoodData().getFoodLevel() - 20);
-								player.awardStat(RecogStats.STAT_PIG.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_PIG.get());
+								}
 								success.set(true);
 							}
 							case 2 -> {
@@ -113,7 +117,9 @@ public class ServerboundKeyUpdatePacket {
 
 									player.getInventory().armor.get(slot).shrink(1);
 								}
-								player.awardStat(RecogStats.STAT_SUB.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_SUB.get());
+								}
 								success.set(true);
 							}
 							case 3 -> {
@@ -132,31 +138,41 @@ public class ServerboundKeyUpdatePacket {
 									clearIfNotBedrock(pos.west().north().offset(0, -i, 0), level);
 									clearIfNotBedrock(pos.west().south().offset(0, -i, 0), level);
 								}
-								player.awardStat(RecogStats.STAT_FOLLOW.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_FOLLOW.get());
+								}
 								success.set(true);
 							}
 							case 4 -> {
 								// Mining fatigue
 								player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 2400, 4));
-								player.awardStat(RecogStats.STAT_CAVE.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_CAVE.get());
+								}
 								success.set(true);
 							}
 							case 5 -> {
 								// Lava
 								level.setBlockAndUpdate(player.blockPosition(), Blocks.LAVA.defaultBlockState());
-								player.awardStat(RecogStats.STAT_YIKE.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_YIKE.get());
+								}
 								success.set(true);
 							}
 							case 6 -> {
 								// Set time to night
 								level.setDayTime(20000);
-								player.awardStat(RecogStats.STAT_DAY.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_DAY.get());
+								}
 								success.set(true);
 							}
 							case 7 -> {
 								// Drop inventory
 								player.getInventory().dropAll();
-								player.awardStat(RecogStats.STAT_TROLL.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_TROLL.get());
+								}
 								success.set(true);
 							}
 							case 8 -> {
@@ -170,14 +186,18 @@ public class ServerboundKeyUpdatePacket {
 										pos = player.blockPosition().offset(0, height, 0);
 									}
 									player.moveTo(pos.getX(), pos.getY(), pos.getZ());
-									player.awardStat(RecogStats.STAT_HIGH.get());
+									if(player.equals(sp)) {
+										player.awardStat(RecogStats.STAT_HIGH.get());
+									}
 									success.set(true);
 								}
 							}
 							case 9 -> {
 								// Set to half a heart
 								player.setHealth(1);
-								player.awardStat(RecogStats.STAT_DIAMOND.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_DIAMOND.get());
+								}
 								success.set(true);
 							}
 							case 10 -> {
@@ -195,7 +215,9 @@ public class ServerboundKeyUpdatePacket {
 										}
 									}
 								}
-								player.awardStat(RecogStats.STAT_CRAFT.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_CRAFT.get());
+								}
 								success.set(true);
 							}
 							case 11 -> {
@@ -203,7 +225,9 @@ public class ServerboundKeyUpdatePacket {
 								summonEntityOffset(player, level, EntityType.ZOMBIE, false, 10, null,
 										rand.nextInt(2),
 										new ItemStack[]{new ItemStack(Items.IRON_HELMET), new ItemStack(Items.IRON_SWORD)}, 2);
-								player.awardStat(RecogStats.STAT_ROT.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_ROT.get());
+								}
 								success.set(true);
 							}
 							case 12 -> {
@@ -211,33 +235,43 @@ public class ServerboundKeyUpdatePacket {
 								summonEntity(player, level, EntityType.SKELETON, false, 10, null,
 										rand.nextInt(2),
 										new ItemStack[]{new ItemStack(Items.IRON_HELMET), new ItemStack(Items.STONE_SWORD)});
-								player.awardStat(RecogStats.STAT_BONE.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_BONE.get());
+								}
 								success.set(true);
 							}
 							case 13 -> {
 								// Dead
 								player.kill();
-								player.awardStat(RecogStats.STAT_DREAM.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_DREAM.get());
+								}
 								success.set(true);
 							}
 							case 14 -> {
 								// End
 								clearBlocksAbove(player, level);
 								summonEntity(player, level, EntityType.ENDERMAN, true, 10, null, 0, null);
-								player.awardStat(RecogStats.STAT_END.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_END.get());
+								}
 								success.set(true);
 							}
 							case 15 -> {
 								// Dragon
 								summonEntity(player, level, EntityType.ENDERMITE, true, 10, null, 0, null);
-								player.awardStat(RecogStats.STAT_DRAGON.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_DRAGON.get());
+								}
 								success.set(true);
 							}
 							case 16 -> {
 								// Boat
 								for (int i = 0; i < 100; i++)
 									player.getInventory().add(new ItemStack(Items.OAK_BOAT));
-								player.awardStat(RecogStats.STAT_BOAT.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_BOAT.get());
+								}
 								success.set(true);
 							}
 							case 17 -> {
@@ -246,7 +280,9 @@ public class ServerboundKeyUpdatePacket {
 								if (slot != -1) {
 									player.getInventory().removeItem(slot, 10);
 								}
-								player.awardStat(RecogStats.STAT_NO_SHOT.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_NO_SHOT.get());
+								}
 								success.set(true);
 							}
 							case 18 -> {
@@ -254,7 +290,9 @@ public class ServerboundKeyUpdatePacket {
 								summonEntityOffset(player, level, EntityType.POLAR_BEAR, true, 7, null, 0, null, 4);
 								if (RecogConfig.waterWhenSpawning.get() && player.isInWater())
 									player.addEffect(new MobEffectInstance(RecogEffects.GRAVITY.get(), 1200, 0));
-								player.awardStat(RecogStats.STAT_BEAR.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_BEAR.get());
+								}
 								success.set(true);
 							}
 							case 19 -> {
@@ -264,7 +302,9 @@ public class ServerboundKeyUpdatePacket {
 								player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 300, 1));
 								summonEntity(player, level, EntityType.TROPICAL_FISH, false, 15, null, 0, null);
 
-								player.awardStat(RecogStats.STAT_AXOLOTL.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_AXOLOTL.get());
+								}
 								success.set(true);
 							}
 							case 20 -> {
@@ -273,7 +313,9 @@ public class ServerboundKeyUpdatePacket {
 								if (RecogConfig.waterWhenSpawning.get() && player.isInWater())
 									player.addEffect(new MobEffectInstance(RecogEffects.GRAVITY.get(), 1200, 0));
 
-								player.awardStat(RecogStats.STAT_CREEP.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_CREEP.get());
+								}
 								success.set(true);
 							}
 							case 21 -> {
@@ -282,7 +324,9 @@ public class ServerboundKeyUpdatePacket {
 								if (RecogConfig.waterWhenSpawning.get() && player.isInWater())
 									player.addEffect(new MobEffectInstance(RecogEffects.GRAVITY.get(), 1200, 0));
 
-								player.awardStat(RecogStats.STAT_ROD.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_ROD.get());
+								}
 								success.set(true);
 							}
 							case 22 -> {
@@ -291,7 +335,9 @@ public class ServerboundKeyUpdatePacket {
 								summonEntity(player, level, EntityType.WITHER_SKELETON, false, 7, MobEffects.MOVEMENT_SPEED, 2,
 										new ItemStack[]{new ItemStack(Items.GOLDEN_SWORD)});
 
-								player.awardStat(RecogStats.STAT_NETHER.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_NETHER.get());
+								}
 								success.set(true);
 							}
 							case 23 -> {
@@ -299,7 +345,9 @@ public class ServerboundKeyUpdatePacket {
 								summonEntity(player, level, EntityType.PHANTOM, false, 7, MobEffects.DAMAGE_RESISTANCE,
 										2, null);
 
-								player.awardStat(RecogStats.STAT_BED.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_BED.get());
+								}
 								success.set(true);
 							}
 							case 24 -> {
@@ -317,7 +365,9 @@ public class ServerboundKeyUpdatePacket {
 									level.addFreshEntity(creeper);
 								}
 
-								player.awardStat(RecogStats.STAT_TWITCH.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_TWITCH.get());
+								}
 								success.set(true);
 							}
 							case 25 -> {
@@ -326,14 +376,18 @@ public class ServerboundKeyUpdatePacket {
 								player.setRemainingFireTicks(1000);
 								player.setSharedFlagOnFire(true);
 
-								player.awardStat(RecogStats.STAT_COAL.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_COAL.get());
+								}
 								success.set(true);
 							}
 							case 26 -> {
 								// Iron
 								summonEntity(player, level, EntityType.IRON_GOLEM, true, 1, null, 0, null);
 
-								player.awardStat(RecogStats.STAT_IRON.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_IRON.get());
+								}
 								success.set(true);
 							}
 							case 27 -> {
@@ -343,14 +397,18 @@ public class ServerboundKeyUpdatePacket {
 												new ItemStack(Items.GOLDEN_HELMET),
 												new ItemStack(Items.GOLDEN_CHESTPLATE)});
 
-								player.awardStat(RecogStats.STAT_GOLD.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_GOLD.get());
+								}
 								success.set(true);
 							}
 							case 28 -> {
 								// Mod
 								Collections.shuffle(player.getInventory().items);
 
-								player.awardStat(RecogStats.STAT_MOD.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_MOD.get());
+								}
 								success.set(true);
 							}
 							case 29 -> {
@@ -370,7 +428,9 @@ public class ServerboundKeyUpdatePacket {
 										break;
 									}
 								}
-								player.awardStat(RecogStats.STAT_PORT.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_PORT.get());
+								}
 								success.set(true);
 							}
 							case 30 -> {
@@ -379,7 +439,9 @@ public class ServerboundKeyUpdatePacket {
 										rand.nextInt(3)));
 								player.addEffect(new MobEffectInstance(RecogEffects.GRAVITY.get(), 1200, 0));
 
-								player.awardStat(RecogStats.STAT_WATER.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_WATER.get());
+								}
 								success.set(true);
 							}
 							case 31 -> {
@@ -394,13 +456,17 @@ public class ServerboundKeyUpdatePacket {
 									}
 								}
 
-								player.awardStat(RecogStats.STAT_BLOCK.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_BLOCK.get());
+								}
 								success.set(true);
 							}
 							case 32 -> {
 								summonEntity(player, level, EntityType.WITCH, false, 4, MobEffects.INVISIBILITY, 0, null);
 
-								player.awardStat(RecogStats.STAT_VILLAGE.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_VILLAGE.get());
+								}
 								success.set(true);
 							}
 							case 33 -> {
@@ -408,7 +474,9 @@ public class ServerboundKeyUpdatePacket {
 								Item randItem = USELESS_ITEMS.get(rand.nextInt(USELESS_ITEMS.size()));
 								giveItem(player, randItem, rand.nextInt(64));
 
-								player.awardStat(RecogStats.STAT_MINE.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_MINE.get());
+								}
 								success.set(true);
 							}
 							case 34 -> {
@@ -417,14 +485,18 @@ public class ServerboundKeyUpdatePacket {
 								level.explode(null, DamageSource.badRespawnPointExplosion(), null, vec.x, vec.y,
 										vec.z, 5.0F, true, Explosion.BlockInteraction.DESTROY);
 
-								player.awardStat(RecogStats.STAT_GAME.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_GAME.get());
+								}
 								success.set(true);
 							}
 							case 35 -> {
 								// Light
 								summonEntityOffset(player, level, EntityType.LIGHTNING_BOLT, false, 7, null, 0, null, 10);
 
-								player.awardStat(RecogStats.STAT_LIGHT.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_LIGHT.get());
+								}
 								success.set(true);
 							}
 							case 36 -> {
@@ -433,13 +505,17 @@ public class ServerboundKeyUpdatePacket {
 									graphicsTimers.startSplat();
 									RecogPacketHandler.sendToClient(new GraphicsTimersDataSyncPacket(graphicsTimers.getSplatTicks(), graphicsTimers.getTonyTicks()), player);
 								});
-								player.awardStat(RecogStats.STAT_INK.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_INK.get());
+								}
 								success.set(true);
 							}
 							case 37 -> {
 								// Bud
 								// Handled clientside
-								player.awardStat(RecogStats.STAT_BUD.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_BUD.get());
+								}
 								success.set(true);
 							}
 							case 38 -> {
@@ -453,7 +529,9 @@ public class ServerboundKeyUpdatePacket {
 												wordTimers.getBeneficence(), wordTimers.getMaxBeneficence(), wordTimers.getDisabledTime()), player);
 									}
 								});
-								player.awardStat(RecogStats.STAT_POGGERS.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_POGGERS.get());
+								}
 								success.set(true);
 							}
 							case 39 -> {
@@ -467,7 +545,9 @@ public class ServerboundKeyUpdatePacket {
 												wordTimers.getBeneficence(), wordTimers.getMaxBeneficence(), wordTimers.getDisabledTime()), player);
 									}
 								});
-								player.awardStat(RecogStats.STAT_BLESS.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_BLESS.get());
+								}
 								success.set(true);
 							}
 							case 40 -> {
@@ -481,7 +561,9 @@ public class ServerboundKeyUpdatePacket {
 												wordTimers.getBeneficence(), wordTimers.getMaxBeneficence(), wordTimers.getDisabledTime()), player);
 									}
 								});
-								player.awardStat(RecogStats.STAT_THING.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_THING.get());
+								}
 								success.set(true);
 							}
 							case 41 -> {
@@ -495,7 +577,9 @@ public class ServerboundKeyUpdatePacket {
 												wordTimers.getBeneficence(), wordTimers.getMaxBeneficence(), wordTimers.getDisabledTime()), player);
 									}
 								});
-								player.awardStat(RecogStats.STAT_GODLIKE.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_GODLIKE.get());
+								}
 								success.set(true);
 							}
 							case 42 -> {
@@ -504,7 +588,9 @@ public class ServerboundKeyUpdatePacket {
 									graphicsTimers.startTony();
 									RecogPacketHandler.sendToClient(new GraphicsTimersDataSyncPacket(graphicsTimers.getSplatTicks(), graphicsTimers.getTonyTicks()), player);
 								});
-								player.awardStat(RecogStats.STAT_TONY.get());
+								if(player.equals(sp)) {
+									player.awardStat(RecogStats.STAT_TONY.get());
+								}
 								success.set(true);
 							}
 							default -> {
