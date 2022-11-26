@@ -24,8 +24,8 @@ if arguments.Microphone:
     mic_idx = int(input("Please input the device index of your primary microphone: "))
 
 mic = sr.Microphone(mic_idx)
-
 mc = MCSocket(7777)
+print("Ready to begin speech recognition!")
 
 
 def get_response(response):
