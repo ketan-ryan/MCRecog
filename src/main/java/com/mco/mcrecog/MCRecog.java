@@ -63,8 +63,6 @@ public class MCRecog
     private ServerSocket server;
     // The blocking (thread-safe) queue to put our input onto in order to communicate between the socket thread and the main thread
     private final BlockingQueue<String> queue = new LinkedBlockingQueue<>();
-    // The blocking queue for client operations
-    private final BlockingQueue<String> clientQueue = new LinkedBlockingQueue<>();
 
     public MCRecog()
     {
@@ -74,6 +72,7 @@ public class MCRecog
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
         RecogEffects.initialise(modEventBus);
+        RecogStats.initialise(modEventBus);
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, RecogConfig.GENERAL_SPEC);
@@ -169,15 +168,6 @@ public class MCRecog
     }
 
     @SubscribeEvent
-    public void onKeyEvent(InputEvent.Key event) {
-        if(event.getAction() != InputConstants.PRESS) return;
-
-        if(event.getKey() == GLFW.GLFW_KEY_B) {
-            RecogPacketHandler.sendToServer(new ServerboundKeyUpdatePacket(29));
-        }
-    }
-
-    @SubscribeEvent
     public void onServerTickEvent(TickEvent.PlayerTickEvent event) {
         if(event.side == LogicalSide.CLIENT) return;
         ServerPlayer player = (ServerPlayer) event.player;
@@ -211,7 +201,6 @@ public class MCRecog
         while ((msg = queue.poll()) != null) {
             for (int i = 0; i < 43; i++) {
                 if (RESPONSES.get(i).equals(msg)) {
-
                     // Knockback
                     if(i == 37) {
                         int rand = RecogUtils.rand.nextInt(5) + 2;
