@@ -1,6 +1,6 @@
 package com.mco.mcrecog.network;
 
-import com.mco.mcrecog.MCRecog;
+import com.mco.mcrecog.McRecog;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
@@ -14,7 +14,7 @@ public class RecogPacketHandler {
 
 	public static void init() {
 		SimpleChannel net = NetworkRegistry.newSimpleChannel(
-				new ResourceLocation(MCRecog.MODID, "main"),
+				new ResourceLocation(McRecog.MODID, "main"),
 				() -> PROTOCOL_VERSION,
 				PROTOCOL_VERSION::equals,
 				PROTOCOL_VERSION::equals);
